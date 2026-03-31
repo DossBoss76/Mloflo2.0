@@ -1,4 +1,4 @@
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WEEKLY_PLAN, AI_AGENTS } from '../../constants/mockData';
@@ -82,17 +82,19 @@ function AiWorkforcePanel() {
         {AI_AGENTS.map(agent => (
           <div
             key={agent.name}
-            className={`flex items-center gap-2.5 ${agent.clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            className={`flex items-center gap-2.5 rounded-lg px-1 py-1 -mx-1 transition-colors ${agent.clickable ? 'cursor-pointer hover:bg-[#222832]' : ''}`}
             onClick={agent.clickable ? () => openDrawer({ type: 'ai-review', title: agent.name }) : undefined}
           >
-            <div
-              className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse-dot"
-              style={{ background: agent.color, boxShadow: `0 0 4px ${agent.color}` }}
-            />
-            <span className={`font-roboto text-[12px] flex-1 ${agent.clickable ? 'text-[#04d39e]' : 'text-[#e8eaed]'}`}>
-              {agent.name}
-            </span>
-            <span className="font-barlow text-[11px] text-[#4d5563]">{agent.count}</span>
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse-dot" style={{ background: agent.color, boxShadow: `0 0 4px ${agent.color}` }}/>
+            <span className="font-roboto text-[12px] text-[#e8eaed] flex-1">{agent.name}</span>
+            {agent.clickable ? (
+              <div className="flex items-center gap-1">
+                <span className="font-barlow text-[11px] underline underline-offset-2" style={{ color: '#04d39e' }}>{agent.count}</span>
+                <ChevronRight size={12} style={{ color: '#04d39e' }} />
+              </div>
+            ) : (
+              <span className="font-barlow text-[11px] text-[#4d5563]">{agent.count}</span>
+            )}
           </div>
         ))}
       </div>
