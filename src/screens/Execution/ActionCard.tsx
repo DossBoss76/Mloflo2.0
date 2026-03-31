@@ -127,20 +127,20 @@ export function ActionCard({ card }: ActionCardProps) {
         </div>
 
         <div
-          className="flex items-center gap-0 px-4 py-2 border-t"
+          className="flex items-center gap-0 px-4 py-2.5 border-t"
           style={{ background: '#161b23', borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <button
             onClick={handleSnooze}
-            className="font-barlow text-[10px] text-[#4d5563] hover:text-[#8c9199] transition-colors py-0.5"
+            className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md"
           >
             Snooze 2hr
           </button>
-          <span className="font-barlow text-[10px] text-[#4d5563] mx-2">·</span>
+          <span className="font-barlow text-[10px] text-[#3a4150] mx-1">·</span>
           <div className="relative">
             <button
               onClick={handleHandToAi}
-              className="font-barlow text-[10px] text-[#4d5563] hover:text-[#8c9199] transition-colors py-0.5"
+              className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md"
             >
               Hand to AI
             </button>
@@ -169,11 +169,11 @@ export function ActionCard({ card }: ActionCardProps) {
               </div>
             )}
           </div>
-          <span className="font-barlow text-[10px] text-[#4d5563] mx-2">·</span>
+          <span className="font-barlow text-[10px] text-[#3a4150] mx-1">·</span>
           <div className="relative" ref={dismissRef}>
             <button
               onClick={() => setShowDismiss(v => !v)}
-              className="font-barlow text-[10px] text-[#4d5563] hover:text-[#8c9199] transition-colors py-0.5 flex items-center gap-0.5"
+              className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md flex items-center gap-1"
             >
               Dismiss <ChevronDown size={10} />
             </button>
