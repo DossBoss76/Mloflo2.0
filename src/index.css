@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Palanquin:wght@400;600&family=Roboto:wght@300;400;500&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0a0c0f;
+  color: #e8eaed;
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #161b23;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #222832;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes draw-check {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(100%); }
+}
+
+@keyframes card-out {
+  from { opacity: 1; transform: translateY(0); max-height: 300px; margin-bottom: 10px; }
+  to { opacity: 0; transform: translateY(-8px); max-height: 0; margin-bottom: 0; }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.3s ease forwards;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s ease forwards;
+}
+
+.animate-toast-out {
+  animation: toast-out 0.25s ease forwards;
+}
+
+.card-removing {
+  animation: card-out 0.35s ease forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.progress-bar {
+  animation: progress-fill 0.8s ease forwards;
+}
+
+.drawer-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.kanban-board {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.kanban-col {
+  min-width: 280px;
+  flex-shrink: 0;
+}
+
+.kanban-col.drag-over {
+  outline: 2px dashed rgba(4, 211, 158, 0.4);
+  outline-offset: -2px;
+}
+
+.deal-card.dragging {
+  opacity: 0.4;
+}
