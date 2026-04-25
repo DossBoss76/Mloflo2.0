@@ -1,5 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, LayoutGrid, List, Focus, Heart, Plus, ChevronDown, Zap, BarChart2, X, Phone, Mail, MessageSquare, Calendar, Clock, AlertTriangle, DollarSign, ChevronRight, ChevronLeft, CheckCircle, PhoneOff, AlertCircle, MoreHorizontal, Mic, MicOff, Timer, FileText, Star, TrendingUp, Users, Activity, Send, Eye, RefreshCw, Voicemail as VoicemailIcon } from 'lucide-react';
+import { useState, useEffect, useCallback, createContext, useContext, useMemo } from 'react';
+import {
+  ArrowLeft, LayoutGrid, List, Focus, Heart, Plus, Zap, BarChart2, X,
+  Phone, Mail, MessageSquare, Calendar, AlertTriangle, DollarSign,
+  ChevronRight, ChevronLeft, CheckCircle, PhoneOff, AlertCircle,
+  MoreHorizontal, Mic, MicOff, FileText, Star, TrendingUp, Users,
+  Activity, Send, RefreshCw, Voicemail as VoicemailIcon, Sun, Moon
+} from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -9,96 +15,204 @@ type ActionFilter = 'all' | 'overdue' | 'today' | 'week';
 type CallOutcome = 'connected' | 'voicemail' | 'no-answer' | 'bad-number';
 type WorkMode = 'call' | 'email' | 'follow-up' | null;
 type Tab = 'timeline' | 'notes' | 'deal' | 'documents';
+type ThemeMode = 'dark' | 'light';
 
-interface Stage {
-  id: string;
-  label: string;
-  color: string;
-}
-
+interface Stage { id: string; label: string; color: string; }
+interface TimelineEntry { id: string; type: 'call' | 'email' | 'note' | 'stage'; text: string; time: string; }
 interface Deal {
-  id: string;
-  name: string;
-  company: string;
-  amount: string;
-  amountRaw: number;
-  stage: string;
-  urgency: UrgencyLevel;
-  nextStep: string;
-  primaryAction: string;
-  actionType: WorkMode;
-  phone: string;
-  email: string;
-  avatar: string;
-  lastContact: string;
-  commission: string;
-  timeline: TimelineEntry[];
-  notes: string;
+  id: string; name: string; company: string; amount: string; amountRaw: number;
+  stage: string; urgency: UrgencyLevel; nextStep: string; primaryAction: string;
+  actionType: WorkMode; phone: string; email: string; avatar: string;
+  lastContact: string; commission: string; timeline: TimelineEntry[]; notes: string;
 }
-
-interface TimelineEntry {
-  id: string;
-  type: 'call' | 'email' | 'note' | 'stage';
-  text: string;
-  time: string;
-}
-
 interface ActionRow {
-  id: string;
-  name: string;
-  context: string;
-  impact: string;
-  impactRaw: number;
-  urgency: UrgencyLevel;
-  actionType: WorkMode;
-  primaryBtn: string;
-  filter: ActionFilter[];
-  dealId: string;
+  id: string; name: string; context: string; impact: string; impactRaw: number;
+  urgency: UrgencyLevel; actionType: WorkMode; primaryBtn: string;
+  filter: ActionFilter[]; dealId: string;
 }
-
 interface Flo {
-  id: string;
-  name: string;
-  dealCount: number;
-  healthScore: number;
-  stages: Stage[];
-  deals: Deal[];
-  actions: ActionRow[];
+  id: string; name: string; dealCount: number; healthScore: number;
+  stages: Stage[]; deals: Deal[]; actions: ActionRow[];
 }
 
-// ─── Color helpers ────────────────────────────────────────────────────────────
+// ─── Theme ────────────────────────────────────────────────────────────────────
 
-const URGENCY_COLOR: Record<UrgencyLevel, string> = {
-  critical: '#ff5c5c',
-  high: '#ff8c42',
-  amber: '#f5a623',
-  green: '#04d39e',
-  blue: '#6dc2f1',
+interface Theme {
+  mode: ThemeMode;
+  // Backgrounds
+  bg: string;          // root bg
+  panel: string;       // header / drawer bg
+  surface: string;     // column / drawer body
+  card: string;        // card bg
+  cardHover: string;
+  inset: string;       // pill / search bg
+  // Text
+  text: string;        // primary
+  textMuted: string;   // secondary
+  textSubtle: string;  // labels
+  textFaint: string;   // ghosts
+  // Borders
+  border: string;
+  borderStrong: string;
+  // Brand
+  brandBlue: string;
+  brandBlueDeep: string;
+  brandGreen: string;
+  // Status
+  danger: string;
+  warning: string;
+  info: string;
+  // Misc
+  shadow: string;
+  scrim: string;
+}
+
+const DARK: Theme = {
+  mode: 'dark',
+  bg: '#0D0D12',
+  panel: '#0a0f14',
+  surface: '#090e14',
+  card: '#0f1419',
+  cardHover: '#141922',
+  inset: '#060a0f',
+  text: '#dde3ec',
+  textMuted: '#8c9199',
+  textSubtle: '#5a6474',
+  textFaint: '#3a4558',
+  border: 'rgba(255,255,255,0.07)',
+  borderStrong: 'rgba(255,255,255,0.15)',
+  brandBlue: '#6DC2F1',
+  brandBlueDeep: '#3a8fc7',
+  brandGreen: '#04D39E',
+  danger: '#ff5c5c',
+  warning: '#f5a623',
+  info: '#6dc2f1',
+  shadow: '0 4px 16px rgba(0,0,0,0.4)',
+  scrim: 'rgba(0,0,0,0.55)',
 };
+
+const LIGHT: Theme = {
+  mode: 'light',
+  bg: '#F4F7FB',
+  panel: '#ffffff',
+  surface: '#ffffff',
+  card: '#ffffff',
+  cardHover: '#F8FAFD',
+  inset: '#F1F4F9',
+  text: '#0F1A2A',
+  textMuted: '#5A6478',
+  textSubtle: '#7A8597',
+  textFaint: '#A8B0BD',
+  border: 'rgba(15,26,42,0.08)',
+  borderStrong: 'rgba(15,26,42,0.16)',
+  brandBlue: '#1B6CFF',
+  brandBlueDeep: '#0E4FCC',
+  brandGreen: '#04A87E',
+  danger: '#E0394A',
+  warning: '#E58A12',
+  info: '#1B6CFF',
+  shadow: '0 4px 14px rgba(15,26,42,0.08)',
+  scrim: 'rgba(15,26,42,0.18)',
+};
+
+const ThemeContext = createContext<Theme>(DARK);
+const useTheme = () => useContext(ThemeContext);
+
+const URGENCY_COLOR = (t: Theme): Record<UrgencyLevel, string> => ({
+  critical: t.danger,
+  high: t.mode === 'dark' ? '#ff8c42' : '#E76F1A',
+  amber: t.warning,
+  green: t.brandGreen,
+  blue: t.brandBlue,
+});
 
 const URGENCY_LABEL: Record<UrgencyLevel, string> = {
-  critical: 'Critical',
-  high: 'High',
-  amber: 'Amber',
-  green: 'Active',
-  blue: 'Info',
+  critical: 'Critical', high: 'High', amber: 'Amber', green: 'Active', blue: 'Info',
 };
+
+// ─── FloRate Logo ─────────────────────────────────────────────────────────────
+
+function FloRateLogo({ size = 28 }: { size?: number }) {
+  const t = useTheme();
+  const blue = t.mode === 'dark' ? '#1f5fea' : '#1B6CFF';
+  const blueDeep = t.mode === 'dark' ? '#0a3fb3' : '#0E4FCC';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+      <div style={{
+        width: size, height: size, borderRadius: size * 0.28,
+        background: `linear-gradient(135deg, ${blue} 0%, ${blueDeep} 100%)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: t.mode === 'light' ? '0 2px 6px rgba(27,108,255,0.25)' : '0 0 0 1px rgba(255,255,255,0.05)',
+        flexShrink: 0,
+      }}>
+        <span style={{
+          color: '#fff', fontSize: size * 0.55, fontWeight: 800,
+          fontFamily: 'Geist, sans-serif', lineHeight: 1, letterSpacing: '-0.02em',
+        }}>F</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <span style={{
+          fontSize: 14, fontWeight: 800, color: t.text,
+          fontFamily: 'Geist, sans-serif', letterSpacing: '-0.01em',
+        }}>FloRate</span>
+        <span style={{
+          fontSize: 8, fontWeight: 600, color: t.textSubtle,
+          fontFamily: 'Geist, sans-serif', letterSpacing: '0.18em', marginTop: 2,
+        }}>EXCHANGE</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Theme Toggle ─────────────────────────────────────────────────────────────
+
+function ThemeToggle({ mode, onToggle }: { mode: ThemeMode; onToggle: () => void }) {
+  const t = useTheme();
+  const isLight = mode === 'light';
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '5px 10px 5px 8px', borderRadius: 20,
+        border: `1px solid ${t.border}`,
+        background: t.inset, cursor: 'pointer',
+        fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
+      }}
+      title={`Switch to ${isLight ? 'dark' : 'light'} mode`}
+    >
+      {isLight ? <Sun size={12} style={{ color: t.warning }} /> : <Moon size={12} style={{ color: t.brandBlue }} />}
+      <span style={{ fontSize: 11, fontWeight: 600, color: t.textMuted }}>
+        {isLight ? 'Light' : 'Dark'}
+      </span>
+      <div style={{
+        width: 26, height: 14, borderRadius: 8,
+        background: isLight ? t.brandBlue : t.borderStrong,
+        position: 'relative', transition: 'background 0.2s',
+      }}>
+        <div style={{
+          position: 'absolute', top: 1, left: isLight ? 13 : 1,
+          width: 12, height: 12, borderRadius: '50%',
+          background: '#fff', transition: 'left 0.2s',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+        }} />
+      </div>
+    </button>
+  );
+}
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const FLOS: Flo[] = [
   {
-    id: 'borrower-approval',
-    name: 'Borrower Approval',
-    dealCount: 19,
-    healthScore: 72,
+    id: 'borrower-approval', name: 'Borrower Approval', dealCount: 19, healthScore: 72,
     stages: [
-      { id: 'new-leads', label: 'New Leads', color: '#4d6070' },
-      { id: 'pre-approval', label: 'Pre-Approval', color: '#6dc2f1' },
-      { id: 'application', label: 'Application', color: '#f5a623' },
-      { id: 'processing', label: 'Processing', color: '#b06dff' },
-      { id: 'ctc', label: 'CTC', color: '#04d39e' },
-      { id: 'closed', label: 'Closed', color: '#04d374' },
+      { id: 'new-leads', label: 'New Leads', color: '#7A8597' },
+      { id: 'pre-approval', label: 'Pre-Approval', color: '#1B6CFF' },
+      { id: 'application', label: 'Application', color: '#E58A12' },
+      { id: 'processing', label: 'Processing', color: '#9b6dff' },
+      { id: 'ctc', label: 'CTC', color: '#04A87E' },
+      { id: 'closed', label: 'Closed', color: '#04D39E' },
     ],
     actions: [
       { id: 'a1', name: 'Sarah Chen', context: 'Rate lock expires in 6 days · Missing 2 docs', impact: '$3,200', impactRaw: 3200, urgency: 'critical', actionType: 'call', primaryBtn: 'Call Now', filter: ['all', 'overdue'], dealId: 'd7' },
@@ -125,15 +239,12 @@ const FLOS: Flo[] = [
     ],
   },
   {
-    id: 'realtor-growth',
-    name: 'Realtor Growth',
-    dealCount: 8,
-    healthScore: 85,
+    id: 'realtor-growth', name: 'Realtor Growth', dealCount: 8, healthScore: 85,
     stages: [
-      { id: 'prospect', label: 'Prospect', color: '#4d6070' },
-      { id: 'active', label: 'Active Partner', color: '#6dc2f1' },
-      { id: 'nurture', label: 'Nurture', color: '#f5a623' },
-      { id: 'vip', label: 'VIP', color: '#04d39e' },
+      { id: 'prospect', label: 'Prospect', color: '#7A8597' },
+      { id: 'active', label: 'Active Partner', color: '#1B6CFF' },
+      { id: 'nurture', label: 'Nurture', color: '#E58A12' },
+      { id: 'vip', label: 'VIP', color: '#04A87E' },
     ],
     actions: [
       { id: 'b1', name: 'Dana Wu', context: '21 days silence · Top referral source', impact: '~$5,600', impactRaw: 5600, urgency: 'amber', actionType: 'follow-up', primaryBtn: 'Review Message', filter: ['all', 'overdue'], dealId: 'r3' },
@@ -147,14 +258,11 @@ const FLOS: Flo[] = [
     ],
   },
   {
-    id: 'retention',
-    name: 'Retention',
-    dealCount: 4,
-    healthScore: 91,
+    id: 'retention', name: 'Retention', dealCount: 4, healthScore: 91,
     stages: [
-      { id: 'past-client', label: 'Past Client', color: '#6dc2f1' },
-      { id: 'refi-candidate', label: 'Refi Candidate', color: '#04d39e' },
-      { id: 'vip-db', label: 'VIP Database', color: '#f5a623' },
+      { id: 'past-client', label: 'Past Client', color: '#1B6CFF' },
+      { id: 'refi-candidate', label: 'Refi Candidate', color: '#04A87E' },
+      { id: 'vip-db', label: 'VIP Database', color: '#E58A12' },
     ],
     actions: [
       { id: 'c1', name: 'Keisha Brown', context: 'Rate drop 0.4% — saves $340/mo refi', impact: '$1,900', impactRaw: 1900, urgency: 'green', actionType: 'email', primaryBtn: 'Review Message', filter: ['all', 'today'], dealId: 'ret1' },
@@ -168,38 +276,44 @@ const FLOS: Flo[] = [
   },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const fmtUSD = (n: number, compact = false) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, ...(compact ? { notation: 'compact' } : {}) } as Intl.NumberFormatOptions).format(n);
+
+// Adjust hex with alpha
+const alpha = (hex: string, a: number) => {
+  const ah = Math.round(a * 255).toString(16).padStart(2, '0');
+  return `${hex}${ah}`;
+};
+
+// ─── Atoms ────────────────────────────────────────────────────────────────────
 
 function UrgencyDot({ level }: { level: UrgencyLevel }) {
+  const t = useTheme();
+  const color = URGENCY_COLOR(t)[level];
   return (
     <span style={{
-      display: 'inline-block',
-      width: 7,
-      height: 7,
-      borderRadius: '50%',
-      background: URGENCY_COLOR[level],
-      boxShadow: level === 'critical' ? `0 0 6px ${URGENCY_COLOR[level]}` : 'none',
+      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+      background: color,
+      boxShadow: level === 'critical' ? `0 0 6px ${color}` : 'none',
       flexShrink: 0,
     }} />
   );
 }
 
 function Avatar({ initials, size = 48 }: { initials: string; size?: number }) {
+  const t = useTheme();
   return (
     <div style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #1a2535 0%, #1f3044 100%)',
-      border: '2px solid rgba(109,194,241,0.25)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: size * 0.3,
-      fontFamily: 'Geist Mono, monospace',
-      fontWeight: 600,
-      color: '#6dc2f1',
-      flexShrink: 0,
+      width: size, height: size, borderRadius: '50%',
+      background: t.mode === 'dark'
+        ? 'linear-gradient(135deg, #1a2535 0%, #1f3044 100%)'
+        : 'linear-gradient(135deg, #E7EFFD 0%, #D6E5FB 100%)',
+      border: `2px solid ${alpha(t.brandBlue, t.mode === 'dark' ? 0.25 : 0.35)}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.3, fontFamily: 'Geist Mono, monospace', fontWeight: 700,
+      color: t.brandBlue, flexShrink: 0,
     }}>
       {initials}
     </div>
@@ -207,38 +321,29 @@ function Avatar({ initials, size = 48 }: { initials: string; size?: number }) {
 }
 
 function HealthPill({ score }: { score: number }) {
-  const color = score >= 80 ? '#04d39e' : score >= 60 ? '#f5a623' : '#ff5c5c';
+  const t = useTheme();
+  const color = score >= 80 ? t.brandGreen : score >= 60 ? t.warning : t.danger;
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '4px 10px',
-      borderRadius: 20,
-      background: `${color}14`,
-      border: `1px solid ${color}30`,
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '4px 10px', borderRadius: 20,
+      background: alpha(color, 0.12),
+      border: `1px solid ${alpha(color, 0.3)}`,
     }}>
       <Heart size={11} style={{ color }} />
-      <span style={{ fontSize: 12, fontWeight: 600, color, fontFamily: 'Geist Mono, monospace' }}>
-        {score}
-      </span>
+      <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: 'Geist Mono, monospace' }}>{score}</span>
     </div>
   );
 }
 
 // ─── Kanban Card ─────────────────────────────────────────────────────────────
 
-function KanbanCard({
-  deal,
-  onCardClick,
-  onActionClick,
-}: {
-  deal: Deal;
-  onCardClick: (deal: Deal) => void;
-  onActionClick: (deal: Deal) => void;
+function KanbanCard({ deal, onCardClick, onActionClick }: {
+  deal: Deal; onCardClick: (deal: Deal) => void; onActionClick: (deal: Deal) => void;
 }) {
+  const t = useTheme();
   const [hovered, setHovered] = useState(false);
-  const urgColor = URGENCY_COLOR[deal.urgency];
+  const urgColor = URGENCY_COLOR(t)[deal.urgency];
 
   return (
     <div
@@ -246,48 +351,34 @@ function KanbanCard({
       onMouseLeave={() => setHovered(false)}
       onClick={() => onCardClick(deal)}
       style={{
-        background: hovered ? '#14192280' : '#0f1419',
-        border: `1px solid ${hovered ? 'rgba(109,194,241,0.2)' : 'rgba(255,255,255,0.07)'}`,
-        borderRadius: 10,
-        padding: '10px 11px',
-        marginBottom: 7,
-        cursor: 'pointer',
+        background: hovered ? t.cardHover : t.card,
+        border: `1px solid ${hovered ? alpha(t.brandBlue, 0.25) : t.border}`,
+        borderRadius: 10, padding: '10px 11px', marginBottom: 7, cursor: 'pointer',
         transition: 'all 0.15s ease',
         transform: hovered ? 'translateY(-1px)' : 'none',
-        boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.4)' : 'none',
+        boxShadow: hovered ? t.shadow : 'none',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#dde3ec', fontFamily: 'Geist, sans-serif', lineHeight: 1.3 }}>
-          {deal.name}
-        </span>
-        <button
-          onClick={e => e.stopPropagation()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#4a5568', display: 'flex' }}
-        >
+        <span style={{ fontSize: 12, fontWeight: 600, color: t.text, lineHeight: 1.3 }}>{deal.name}</span>
+        <button onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: t.textSubtle, display: 'flex' }}>
           <MoreHorizontal size={13} />
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-        <span style={{ fontSize: 10, color: '#5a6474', fontFamily: 'Geist, sans-serif' }}>{deal.company}</span>
-        <span style={{ fontSize: 10, color: '#3a4252' }}>·</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#6dc2f1', fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10, color: t.textSubtle }}>{deal.company}</span>
+        <span style={{ fontSize: 10, color: t.textFaint }}>·</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: t.brandBlue, fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
         <span style={{
-          fontSize: 9, fontWeight: 600,
-          color: urgColor,
-          background: `${urgColor}15`,
-          padding: '1px 5px', borderRadius: 4,
-          fontFamily: 'Geist, sans-serif',
-          marginLeft: 2,
+          fontSize: 9, fontWeight: 700, color: urgColor,
+          background: alpha(urgColor, 0.12), padding: '1px 5px', borderRadius: 4, marginLeft: 2,
         }}>
           {URGENCY_LABEL[deal.urgency]}
         </span>
       </div>
 
-      <div style={{ fontSize: 10, color: '#4d5a6e', marginBottom: 8, lineHeight: 1.4, fontFamily: 'Geist, sans-serif' }}>
-        {deal.nextStep}
-      </div>
+      <div style={{ fontSize: 10, color: t.textSubtle, marginBottom: 8, lineHeight: 1.4 }}>{deal.nextStep}</div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <UrgencyDot level={deal.urgency} />
@@ -295,16 +386,9 @@ function KanbanCard({
           <button
             onClick={e => { e.stopPropagation(); onActionClick(deal); }}
             style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: '#0D0D12',
-              background: urgColor,
-              border: 'none',
-              borderRadius: 6,
-              padding: '3px 9px',
-              cursor: 'pointer',
-              fontFamily: 'Geist, sans-serif',
-              transition: 'opacity 0.15s',
+              fontSize: 10, fontWeight: 700, color: '#fff',
+              background: urgColor, border: 'none', borderRadius: 6,
+              padding: '4px 10px', cursor: 'pointer', transition: 'opacity 0.15s',
             }}
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -319,69 +403,50 @@ function KanbanCard({
 
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
-function KanbanCol({
-  stage,
-  deals,
-  onCardClick,
-  onActionClick,
-}: {
-  stage: Stage;
-  deals: Deal[];
-  onCardClick: (deal: Deal) => void;
-  onActionClick: (deal: Deal) => void;
+function KanbanCol({ stage, deals, onCardClick, onActionClick }: {
+  stage: Stage; deals: Deal[];
+  onCardClick: (deal: Deal) => void; onActionClick: (deal: Deal) => void;
 }) {
+  const t = useTheme();
   const totalAmt = deals.reduce((s, d) => s + d.amountRaw, 0);
-  const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalAmt);
 
   return (
     <div style={{
-      flex: '1 1 0',
-      minWidth: 180,
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#090e14',
-      border: '1px solid rgba(255,255,255,0.05)',
+      flex: '1 1 0', minWidth: 180, display: 'flex', flexDirection: 'column',
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderTop: `2px solid ${stage.color}`,
       borderRadius: 10,
     }}>
-      <div style={{
-        padding: '10px 12px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        flexShrink: 0,
-      }}>
+      <div style={{ padding: '10px 12px 8px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#c8d0dc', fontFamily: 'Geist, sans-serif', letterSpacing: '0.01em' }}>
-            {stage.label}
-          </span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>{stage.label}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{
               fontSize: 10, fontWeight: 700, color: stage.color,
-              background: `${stage.color}15`, padding: '1px 6px',
+              background: alpha(stage.color, 0.12), padding: '1px 6px',
               borderRadius: 5, fontFamily: 'Geist Mono, monospace',
             }}>
               {deals.length}
             </span>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3a4252', display: 'flex', padding: 0 }}>
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textFaint, display: 'flex', padding: 0 }}>
               <Plus size={12} />
             </button>
           </div>
         </div>
         {totalAmt > 0 && (
-          <span style={{ fontSize: 9, color: '#3a4252', fontFamily: 'Geist Mono, monospace' }}>{fmt}</span>
+          <span style={{ fontSize: 9, color: t.textFaint, fontFamily: 'Geist Mono, monospace' }}>{fmtUSD(totalAmt)}</span>
         )}
       </div>
 
-      <div style={{ padding: '8px', overflowY: 'auto', flex: 1, maxHeight: 'calc(100vh - 240px)' }}>
-        {deals.map(deal => (
-          <KanbanCard key={deal.id} deal={deal} onCardClick={onCardClick} onActionClick={onActionClick} />
-        ))}
+      <div style={{ padding: 8, overflowY: 'auto', flex: 1, maxHeight: 'calc(100vh - 240px)' }}>
+        {deals.map(deal => <KanbanCard key={deal.id} deal={deal} onCardClick={onCardClick} onActionClick={onActionClick} />)}
         {deals.length === 0 && (
           <div style={{
-            border: '1px dashed rgba(255,255,255,0.06)',
-            borderRadius: 8, height: 48,
+            border: `1px dashed ${t.border}`, borderRadius: 8, height: 48,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ fontSize: 9, color: '#2a3040', fontFamily: 'Geist, sans-serif', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Empty</span>
+            <span style={{ fontSize: 9, color: t.textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Empty</span>
           </div>
         )}
       </div>
@@ -391,24 +456,17 @@ function KanbanCol({
 
 // ─── Actions Drawer ───────────────────────────────────────────────────────────
 
-function ActionsDrawer({
-  flo,
-  onClose,
-  onStartWork,
-}: {
-  flo: Flo;
-  onClose: () => void;
-  onStartWork: (deal: Deal, mode: WorkMode) => void;
+function ActionsDrawer({ flo, onClose, onStartWork }: {
+  flo: Flo; onClose: () => void; onStartWork: (deal: Deal, mode: WorkMode) => void;
 }) {
+  const t = useTheme();
   const [filter, setFilter] = useState<ActionFilter>('all');
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [snoozed, setSnoozed] = useState<Set<string>>(new Set());
 
-  const filterTabs: { id: ActionFilter; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'overdue', label: 'Overdue' },
-    { id: 'today', label: 'Due Today' },
-    { id: 'week', label: 'This Week' },
+  const tabs: { id: ActionFilter; label: string }[] = [
+    { id: 'all', label: 'All' }, { id: 'overdue', label: 'Overdue' },
+    { id: 'today', label: 'Due Today' }, { id: 'week', label: 'This Week' },
   ];
 
   const visible = flo.actions.filter(a =>
@@ -416,32 +474,36 @@ function ActionsDrawer({
     (filter === 'all' || a.filter.includes(filter))
   );
   const totalImpact = visible.reduce((s, a) => s + a.impactRaw, 0);
-  const fmtImpact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalImpact);
 
   return (
-    <div style={{ width: 560, height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0f16', borderLeft: '1px solid rgba(255,255,255,0.07)' }}>
-      <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+    <div style={{ width: 560, height: '100%', display: 'flex', flexDirection: 'column', background: t.panel, borderLeft: `1px solid ${t.border}` }}>
+      <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6dc2f1 0%, #3a9fd8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={15} style={{ color: '#0D0D12' }} />
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: `linear-gradient(135deg, ${t.brandBlue} 0%, ${t.brandBlueDeep} 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Zap size={15} style={{ color: '#fff' }} />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#dde3ec', fontFamily: 'Geist, sans-serif' }}>Flo Actions</div>
-              <div style={{ fontSize: 11, color: '#4a5568', fontFamily: 'Geist, sans-serif' }}>{visible.length} actions · {fmtImpact} at risk</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Flo Actions</div>
+              <div style={{ fontSize: 11, color: t.textSubtle }}>{visible.length} actions · {fmtUSD(totalImpact)} at risk</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a5568', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textSubtle, display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 4, background: '#060a0f', borderRadius: 8, padding: 3 }}>
-          {filterTabs.map(f => (
+        <div style={{ display: 'flex', gap: 4, background: t.inset, borderRadius: 8, padding: 3 }}>
+          {tabs.map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)} style={{
               flex: 1, padding: '5px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 11, fontWeight: 600, fontFamily: 'Geist, sans-serif',
-              background: filter === f.id ? '#162030' : 'transparent',
-              color: filter === f.id ? '#6dc2f1' : '#3a4558',
+              fontSize: 11, fontWeight: 600,
+              background: filter === f.id ? (t.mode === 'dark' ? '#162030' : '#fff') : 'transparent',
+              color: filter === f.id ? t.brandBlue : t.textSubtle,
+              boxShadow: filter === f.id && t.mode === 'light' ? '0 1px 3px rgba(15,26,42,0.08)' : 'none',
               transition: 'all 0.15s',
             }}>
               {f.label}
@@ -453,23 +515,24 @@ function ActionsDrawer({
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px' }}>
         {visible.map(action => {
           const deal = flo.deals.find(d => d.id === action.dealId);
-          const urgColor = URGENCY_COLOR[action.urgency];
+          const urgColor = URGENCY_COLOR(t)[action.urgency];
           return (
             <div key={action.id} style={{
-              background: '#0c1219', border: '1px solid rgba(255,255,255,0.06)',
-              borderLeft: `3px solid ${urgColor}`, borderRadius: 10, padding: '12px 14px', marginBottom: 8,
+              background: t.card, border: `1px solid ${t.border}`,
+              borderLeft: `3px solid ${urgColor}`, borderRadius: 10,
+              padding: '12px 14px', marginBottom: 8,
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
                 <Avatar initials={action.name.split(' ').map(p => p[0]).join('').slice(0, 2)} size={34} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#dde3ec', fontFamily: 'Geist, sans-serif' }}>{action.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{action.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <DollarSign size={10} style={{ color: urgColor }} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: urgColor, fontFamily: 'Geist Mono, monospace' }}>{action.impact}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#4a5568', fontFamily: 'Geist, sans-serif', lineHeight: 1.4 }}>{action.context}</div>
+                  <div style={{ fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>{action.context}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -477,8 +540,9 @@ function ActionsDrawer({
                   onClick={() => deal && action.actionType && onStartWork(deal, action.actionType)}
                   style={{
                     flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'Geist, sans-serif',
-                    background: 'linear-gradient(135deg, #6dc2f1 0%, #3a8fc7 100%)', transition: 'opacity 0.15s',
+                    fontSize: 12, fontWeight: 700, color: '#fff',
+                    background: `linear-gradient(135deg, ${t.brandBlue} 0%, ${t.brandBlueDeep} 100%)`,
+                    transition: 'opacity 0.15s',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -488,24 +552,20 @@ function ActionsDrawer({
                 <button
                   onClick={() => setSnoozed(prev => new Set([...prev, action.id]))}
                   style={{
-                    padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#4a5568',
-                    fontFamily: 'Geist, sans-serif', background: 'transparent', transition: 'all 0.15s',
+                    padding: '7px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                    cursor: 'pointer', fontSize: 11, fontWeight: 600, color: t.textMuted,
+                    background: 'transparent', transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#8c9199'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#4a5568'; e.currentTarget.style.background = 'transparent'; }}
                 >
                   Snooze
                 </button>
                 <button
                   onClick={() => setDismissed(prev => new Set([...prev, action.id]))}
                   style={{
-                    padding: '7px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#4a5568',
-                    fontFamily: 'Geist, sans-serif', background: 'transparent', transition: 'all 0.15s',
+                    padding: '7px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                    cursor: 'pointer', fontSize: 11, fontWeight: 600, color: t.textMuted,
+                    background: 'transparent', transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#ff5c5c'; e.currentTarget.style.background = 'rgba(255,92,92,0.06)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#4a5568'; e.currentTarget.style.background = 'transparent'; }}
                 >
                   Dismiss
                 </button>
@@ -515,9 +575,9 @@ function ActionsDrawer({
         })}
         {visible.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <CheckCircle size={32} style={{ color: '#04d39e', margin: '0 auto 12px' }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#4a5568', fontFamily: 'Geist, sans-serif' }}>All clear</div>
-            <div style={{ fontSize: 12, color: '#2a3040', fontFamily: 'Geist, sans-serif', marginTop: 4 }}>No actions in this filter</div>
+            <CheckCircle size={32} style={{ color: t.brandGreen, margin: '0 auto 12px' }} />
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.textMuted }}>All clear</div>
+            <div style={{ fontSize: 12, color: t.textFaint, marginTop: 4 }}>No actions in this filter</div>
           </div>
         )}
       </div>
@@ -528,80 +588,102 @@ function ActionsDrawer({
 // ─── Insights Drawer ──────────────────────────────────────────────────────────
 
 function InsightsDrawer({ flo, onClose }: { flo: Flo; onClose: () => void }) {
+  const t = useTheme();
   const criticalCount = flo.deals.filter(d => d.urgency === 'critical').length;
   const highCount = flo.deals.filter(d => d.urgency === 'high').length;
   const amberCount = flo.deals.filter(d => d.urgency === 'amber').length;
   const totalPipeline = flo.deals.reduce((s, d) => s + d.amountRaw, 0);
   const atRisk = flo.deals.filter(d => ['critical', 'high'].includes(d.urgency)).reduce((s, d) => s + d.amountRaw, 0);
-  const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: 'compact' } as Intl.NumberFormatOptions).format(n);
-  const scoreColor = flo.healthScore >= 80 ? '#04d39e' : flo.healthScore >= 60 ? '#f5a623' : '#ff5c5c';
+  const scoreColor = flo.healthScore >= 80 ? t.brandGreen : flo.healthScore >= 60 ? t.warning : t.danger;
 
   return (
-    <div style={{ width: 560, height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0f16', borderLeft: '1px solid rgba(255,255,255,0.07)' }}>
-      <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+    <div style={{ width: 560, height: '100%', display: 'flex', flexDirection: 'column', background: t.panel, borderLeft: `1px solid ${t.border}` }}>
+      <div style={{ padding: '18px 22px 14px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #04d39e 0%, #02a87e 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BarChart2 size={15} style={{ color: '#0D0D12' }} />
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: `linear-gradient(135deg, ${t.brandGreen} 0%, ${t.mode === 'dark' ? '#02a87e' : '#04835f'} 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <BarChart2 size={15} style={{ color: '#fff' }} />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#dde3ec', fontFamily: 'Geist, sans-serif' }}>Flo Insights</div>
-              <div style={{ fontSize: 11, color: '#4a5568', fontFamily: 'Geist, sans-serif' }}>{flo.name} · Live analysis</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Flo Insights</div>
+              <div style={{ fontSize: 11, color: t.textSubtle }}>{flo.name} · Live analysis</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a5568', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textSubtle, display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
-        <div style={{ background: '#0c1219', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '18px', marginBottom: 12, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#4a5568', fontFamily: 'Geist, sans-serif', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Flo Health Score</div>
+        <div style={{
+          background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
+          padding: 18, marginBottom: 12, textAlign: 'center', boxShadow: t.mode === 'light' ? t.shadow : 'none',
+        }}>
+          <div style={{ fontSize: 11, color: t.textSubtle, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Flo Health Score</div>
           <div style={{ fontSize: 52, fontWeight: 800, color: scoreColor, fontFamily: 'Geist Mono, monospace', lineHeight: 1 }}>{flo.healthScore}</div>
-          <div style={{ fontSize: 11, color: '#3a4558', fontFamily: 'Geist, sans-serif', marginTop: 4 }}>out of 100</div>
-          <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.05)', marginTop: 14, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${flo.healthScore}%`, borderRadius: 3, background: `linear-gradient(90deg, ${scoreColor}80, ${scoreColor})` }} />
+          <div style={{ fontSize: 11, color: t.textFaint, marginTop: 4 }}>out of 100</div>
+          <div style={{ height: 6, borderRadius: 3, background: t.inset, marginTop: 14, position: 'relative', overflow: 'hidden' }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, height: '100%', width: `${flo.healthScore}%`,
+              borderRadius: 3, background: `linear-gradient(90deg, ${alpha(scoreColor, 0.5)}, ${scoreColor})`,
+            }} />
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           {[
-            { label: 'Total Pipeline', value: fmt(totalPipeline), Icon: TrendingUp, color: '#6dc2f1' },
-            { label: 'Revenue at Risk', value: fmt(atRisk), Icon: AlertTriangle, color: '#ff5c5c' },
-            { label: 'Active Deals', value: String(flo.deals.length), Icon: Users, color: '#04d39e' },
-            { label: 'Actions Needed', value: String(flo.actions.length), Icon: Activity, color: '#f5a623' },
+            { label: 'Total Pipeline', value: fmtUSD(totalPipeline, true), Icon: TrendingUp, color: t.brandBlue },
+            { label: 'Revenue at Risk', value: fmtUSD(atRisk, true), Icon: AlertTriangle, color: t.danger },
+            { label: 'Active Deals', value: String(flo.deals.length), Icon: Users, color: t.brandGreen },
+            { label: 'Actions Needed', value: String(flo.actions.length), Icon: Activity, color: t.warning },
           ].map(stat => (
-            <div key={stat.label} style={{ background: '#0c1219', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '14px' }}>
+            <div key={stat.label} style={{
+              background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: 14,
+              boxShadow: t.mode === 'light' ? t.shadow : 'none',
+            }}>
               <stat.Icon size={16} style={{ color: stat.color, marginBottom: 8 }} />
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#dde3ec', fontFamily: 'Geist Mono, monospace', marginBottom: 2 }}>{stat.value}</div>
-              <div style={{ fontSize: 10, color: '#3a4558', fontFamily: 'Geist, sans-serif' }}>{stat.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: t.text, fontFamily: 'Geist Mono, monospace', marginBottom: 2 }}>{stat.value}</div>
+              <div style={{ fontSize: 10, color: t.textFaint }}>{stat.label}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ background: '#0c1219', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '14px', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8c9199', fontFamily: 'Geist, sans-serif', marginBottom: 12 }}>Urgency Breakdown</div>
+        <div style={{
+          background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
+          padding: 14, marginBottom: 12, boxShadow: t.mode === 'light' ? t.shadow : 'none',
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginBottom: 12 }}>Urgency Breakdown</div>
           {[
-            { label: 'Critical', count: criticalCount, color: '#ff5c5c' },
-            { label: 'High', count: highCount, color: '#ff8c42' },
-            { label: 'Amber', count: amberCount, color: '#f5a623' },
-            { label: 'Active', count: flo.deals.filter(d => d.urgency === 'green').length, color: '#04d39e' },
+            { label: 'Critical', count: criticalCount, color: t.danger },
+            { label: 'High', count: highCount, color: URGENCY_COLOR(t).high },
+            { label: 'Amber', count: amberCount, color: t.warning },
+            { label: 'Active', count: flo.deals.filter(d => d.urgency === 'green').length, color: t.brandGreen },
           ].map(row => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: row.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: '#6a7585', fontFamily: 'Geist, sans-serif', flex: 1 }}>{row.label}</span>
+              <span style={{ fontSize: 12, color: t.textMuted, flex: 1 }}>{row.label}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: row.color, fontFamily: 'Geist Mono, monospace' }}>{row.count}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ background: 'linear-gradient(135deg, #0c1a2a 0%, #0a1520 100%)', border: '1px solid rgba(109,194,241,0.15)', borderRadius: 12, padding: '14px' }}>
+        <div style={{
+          background: t.mode === 'dark'
+            ? 'linear-gradient(135deg, #0c1a2a 0%, #0a1520 100%)'
+            : 'linear-gradient(135deg, #EAF1FE 0%, #F4F8FF 100%)',
+          border: `1px solid ${alpha(t.brandBlue, 0.2)}`,
+          borderRadius: 12, padding: 14,
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Star size={13} style={{ color: '#6dc2f1' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#6dc2f1', fontFamily: 'Geist, sans-serif' }}>AI Guidance</span>
+            <Star size={13} style={{ color: t.brandBlue }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: t.brandBlue }}>AI Guidance</span>
           </div>
-          <div style={{ fontSize: 12, color: '#5a6474', fontFamily: 'Geist, sans-serif', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.6 }}>
             {criticalCount > 0
               ? `You have ${criticalCount} critical deal${criticalCount > 1 ? 's' : ''} at risk. Prioritize calling borrowers with expiring rate locks — each day of delay increases fall-through probability by ~12%.`
               : 'Your pipeline looks healthy. Focus on moving deals through processing and maintaining realtor relationships to sustain deal flow.'}
@@ -614,24 +696,25 @@ function InsightsDrawer({ flo, onClose }: { flo: Flo; onClose: () => void }) {
 
 // ─── Call Mode ────────────────────────────────────────────────────────────────
 
-function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOutcome) => void }) {
+function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (o: CallOutcome) => void }) {
+  const t = useTheme();
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
   const [notes, setNotes] = useState('');
   const [outcome, setOutcome] = useState<CallOutcome | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setSeconds(s => s + 1), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setSeconds(s => s + 1), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const OUTCOMES: { id: CallOutcome; label: string; Icon: React.FC<{ size: number }>; color: string }[] = [
-    { id: 'connected', label: 'Connected', Icon: CheckCircle, color: '#04d39e' },
-    { id: 'voicemail', label: 'Voicemail', Icon: VoicemailIcon, color: '#6dc2f1' },
-    { id: 'no-answer', label: 'No Answer', Icon: PhoneOff, color: '#f5a623' },
-    { id: 'bad-number', label: 'Bad Number', Icon: AlertCircle, color: '#ff5c5c' },
+    { id: 'connected', label: 'Connected', Icon: CheckCircle, color: t.brandGreen },
+    { id: 'voicemail', label: 'Voicemail', Icon: VoicemailIcon, color: t.brandBlue },
+    { id: 'no-answer', label: 'No Answer', Icon: PhoneOff, color: t.warning },
+    { id: 'bad-number', label: 'Bad Number', Icon: AlertCircle, color: t.danger },
   ];
 
   const NEXT_STEPS = ['Schedule follow-up call', 'Send text recap', 'Request missing docs', 'Send rate quote', 'Email next steps', 'Mark as nurture'];
@@ -640,31 +723,33 @@ function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOu
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {!outcome && (
         <div style={{
-          background: 'linear-gradient(135deg, #0a1a0d 0%, #071410 100%)',
-          border: '1px solid rgba(4,211,158,0.2)', borderRadius: 12, padding: '18px',
+          background: t.mode === 'dark' ? 'linear-gradient(135deg, #0a1a0d, #071410)' : 'linear-gradient(135deg, #ECFAF4, #F4FCF8)',
+          border: `1px solid ${alpha(t.brandGreen, 0.25)}`,
+          borderRadius: 12, padding: 18,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
         }}>
           <div style={{ position: 'relative', width: 64, height: 64 }}>
             <div style={{
               position: 'absolute', inset: -8, borderRadius: '50%',
-              background: 'rgba(4,211,158,0.12)', animation: 'callPulse 1.5s ease-in-out infinite',
+              background: alpha(t.brandGreen, 0.15), animation: 'callPulse 1.5s ease-in-out infinite',
             }} />
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #04d39e 0%, #02a87e 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Phone size={24} style={{ color: '#0D0D12' }} />
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${t.brandGreen}, ${t.mode === 'dark' ? '#02a87e' : '#048466'})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Phone size={24} style={{ color: '#fff' }} />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#04d39e', fontFamily: 'Geist Mono, monospace' }}>{fmt(seconds)}</div>
-          <div style={{ fontSize: 12, color: '#2a5040', fontFamily: 'Geist, sans-serif' }}>Call in progress · {deal.phone}</div>
-          <button
-            onClick={() => setMuted(m => !m)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
-              border: `1px solid ${muted ? '#ff5c5c40' : 'rgba(255,255,255,0.08)'}`,
-              background: muted ? 'rgba(255,92,92,0.08)' : 'transparent',
-              color: muted ? '#ff5c5c' : '#4a5568', cursor: 'pointer',
-              fontSize: 11, fontFamily: 'Geist, sans-serif',
-            }}
-          >
+          <div style={{ fontSize: 24, fontWeight: 800, color: t.brandGreen, fontFamily: 'Geist Mono, monospace' }}>{fmt(seconds)}</div>
+          <div style={{ fontSize: 12, color: t.textMuted }}>Call in progress · {deal.phone}</div>
+          <button onClick={() => setMuted(m => !m)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
+            border: `1px solid ${muted ? alpha(t.danger, 0.4) : t.border}`,
+            background: muted ? alpha(t.danger, 0.08) : 'transparent',
+            color: muted ? t.danger : t.textMuted, cursor: 'pointer',
+            fontSize: 11,
+          }}>
             {muted ? <MicOff size={13} /> : <Mic size={13} />}
             {muted ? 'Unmute' : 'Mute'}
           </button>
@@ -672,15 +757,15 @@ function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOu
       )}
 
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', fontFamily: 'Geist, sans-serif', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Call Notes</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Call Notes</div>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
           placeholder="Type notes while you talk..."
           style={{
-            width: '100%', minHeight: 90, background: '#060a0f',
-            border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8,
-            padding: '10px 12px', color: '#c8d0dc', fontSize: 12,
+            width: '100%', minHeight: 90, background: t.inset,
+            border: `1px solid ${t.border}`, borderRadius: 8,
+            padding: '10px 12px', color: t.text, fontSize: 12,
             fontFamily: 'Geist, sans-serif', resize: 'vertical', outline: 'none',
             lineHeight: 1.6, boxSizing: 'border-box',
           }}
@@ -689,21 +774,14 @@ function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOu
 
       {!outcome ? (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', fontFamily: 'Geist, sans-serif', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Call Outcome</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Call Outcome</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             {OUTCOMES.map(o => (
-              <button
-                key={o.id}
-                onClick={() => { setOutcome(o.id); onOutcome(o.id); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8,
-                  border: `1px solid ${o.color}25`, background: `${o.color}08`,
-                  color: o.color, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                  fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = `${o.color}14`; e.currentTarget.style.borderColor = `${o.color}50`; }}
-                onMouseLeave={e => { e.currentTarget.style.background = `${o.color}08`; e.currentTarget.style.borderColor = `${o.color}25`; }}
-              >
+              <button key={o.id} onClick={() => { setOutcome(o.id); onOutcome(o.id); }} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8,
+                border: `1px solid ${alpha(o.color, 0.3)}`, background: alpha(o.color, 0.08),
+                color: o.color, cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.15s',
+              }}>
                 <o.Icon size={14} /> {o.label}
               </button>
             ))}
@@ -711,16 +789,15 @@ function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOu
         </div>
       ) : (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', fontFamily: 'Geist, sans-serif', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Suggested Next Step</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Suggested Next Step</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {NEXT_STEPS.map(step => (
               <button key={step} style={{
                 padding: '6px 12px', borderRadius: 20,
-                border: '1px solid rgba(109,194,241,0.2)', background: 'rgba(109,194,241,0.06)',
-                color: '#6dc2f1', cursor: 'pointer', fontSize: 11, fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(109,194,241,0.12)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(109,194,241,0.06)'; }}>
+                border: `1px solid ${alpha(t.brandBlue, 0.25)}`,
+                background: alpha(t.brandBlue, 0.08), color: t.brandBlue,
+                cursor: 'pointer', fontSize: 11, transition: 'all 0.15s',
+              }}>
                 {step}
               </button>
             ))}
@@ -734,6 +811,7 @@ function CallMode({ deal, onOutcome }: { deal: Deal; onOutcome: (outcome: CallOu
 // ─── Email/Follow-up Mode ─────────────────────────────────────────────────────
 
 function CommsMode({ deal, mode }: { deal: Deal; mode: 'email' | 'follow-up' }) {
+  const t = useTheme();
   const [body, setBody] = useState(
     mode === 'email'
       ? `Hi ${deal.name.split(' ')[0]},\n\nI wanted to follow up on your loan application and make sure everything is moving smoothly.\n\nPlease let me know if you have any questions — I'm here to help every step of the way.\n\nBest,\nMarcus Cole\nSenior Loan Officer`
@@ -742,28 +820,24 @@ function CommsMode({ deal, mode }: { deal: Deal; mode: 'email' | 'follow-up' }) 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ background: '#060a0f', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ fontSize: 11, color: '#3a4558', fontFamily: 'Geist, sans-serif' }}>
-            To: <span style={{ color: '#6dc2f1' }}>{deal.email}</span>
+      <div style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ padding: '10px 14px', borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ fontSize: 11, color: t.textSubtle }}>
+            To: <span style={{ color: t.brandBlue }}>{deal.email}</span>
           </div>
         </div>
-        <textarea
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          style={{
-            width: '100%', minHeight: 220, background: 'transparent', border: 'none',
-            padding: '12px 14px', color: '#c8d0dc', fontSize: 12,
-            fontFamily: 'Geist, sans-serif', resize: 'vertical', outline: 'none',
-            lineHeight: 1.7, boxSizing: 'border-box',
-          }}
-        />
+        <textarea value={body} onChange={e => setBody(e.target.value)} style={{
+          width: '100%', minHeight: 220, background: 'transparent', border: 'none',
+          padding: '12px 14px', color: t.text, fontSize: 12,
+          fontFamily: 'Geist, sans-serif', resize: 'vertical', outline: 'none',
+          lineHeight: 1.7, boxSizing: 'border-box',
+        }} />
       </div>
       <button style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         padding: '10px 0', borderRadius: 9, border: 'none', cursor: 'pointer',
-        fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'Geist, sans-serif',
-        background: 'linear-gradient(135deg, #6dc2f1 0%, #3a8fc7 100%)',
+        fontSize: 13, fontWeight: 700, color: '#fff',
+        background: `linear-gradient(135deg, ${t.brandBlue}, ${t.brandBlueDeep})`,
       }}>
         <Send size={14} /> Send {mode === 'email' ? 'Email' : 'Follow-up'}
       </button>
@@ -773,52 +847,48 @@ function CommsMode({ deal, mode }: { deal: Deal; mode: 'email' | 'follow-up' }) 
 
 // ─── Profile Workspace ────────────────────────────────────────────────────────
 
-function ProfileWorkspace({
-  deal, flo, workMode, onClose, onPrev, onNext, hasPrev, hasNext, callOutcome, onCallOutcome,
-}: {
+function ProfileWorkspace({ deal, flo, workMode, onClose, onPrev, onNext, hasPrev, hasNext, callOutcome, onCallOutcome }: {
   deal: Deal; flo: Flo; workMode: WorkMode; onClose: () => void;
   onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean;
   callOutcome: CallOutcome | null; onCallOutcome: (o: CallOutcome) => void;
 }) {
+  const t = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>('timeline');
   const [confirmClose, setConfirmClose] = useState(false);
   const [noteText, setNoteText] = useState(deal.notes);
   const stageIdx = flo.stages.findIndex(s => s.id === deal.stage);
   const nextStage = stageIdx < flo.stages.length - 1 ? flo.stages[stageIdx + 1] : null;
-  const urgColor = URGENCY_COLOR[deal.urgency];
+  const urgColor = URGENCY_COLOR(t)[deal.urgency];
 
   const handleClose = () => {
-    if (workMode === 'call' && !callOutcome) { setConfirmClose(true); }
-    else { onClose(); }
+    if (workMode === 'call' && !callOutcome) setConfirmClose(true);
+    else onClose();
   };
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'timeline', label: 'Timeline' },
-    { id: 'notes', label: 'Notes' },
-    { id: 'deal', label: 'Deal Details' },
-    { id: 'documents', label: 'Documents' },
+    { id: 'timeline', label: 'Timeline' }, { id: 'notes', label: 'Notes' },
+    { id: 'deal', label: 'Deal Details' }, { id: 'documents', label: 'Documents' },
   ];
 
   return (
-    <div style={{ width: 720, height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0f16', borderLeft: '1px solid rgba(255,255,255,0.07)', position: 'relative' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+    <div style={{ width: 720, height: '100%', display: 'flex', flexDirection: 'column', background: t.panel, borderLeft: `1px solid ${t.border}`, position: 'relative' }}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={onPrev} disabled={!hasPrev} style={{ background: 'none', border: 'none', cursor: hasPrev ? 'pointer' : 'default', color: hasPrev ? '#6dc2f1' : '#2a3040', display: 'flex' }}>
+            <button onClick={onPrev} disabled={!hasPrev} style={{ background: 'none', border: 'none', cursor: hasPrev ? 'pointer' : 'default', color: hasPrev ? t.brandBlue : t.textFaint, display: 'flex' }}>
               <ChevronLeft size={16} />
             </button>
-            <button onClick={onNext} disabled={!hasNext} style={{ background: 'none', border: 'none', cursor: hasNext ? 'pointer' : 'default', color: hasNext ? '#6dc2f1' : '#2a3040', display: 'flex' }}>
+            <button onClick={onNext} disabled={!hasNext} style={{ background: 'none', border: 'none', cursor: hasNext ? 'pointer' : 'default', color: hasNext ? t.brandBlue : t.textFaint, display: 'flex' }}>
               <ChevronRight size={16} />
             </button>
             <div style={{
               fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-              color: urgColor, background: `${urgColor}15`, padding: '3px 8px', borderRadius: 5, fontFamily: 'Geist, sans-serif',
+              color: urgColor, background: alpha(urgColor, 0.12), padding: '3px 8px', borderRadius: 5,
             }}>
               {URGENCY_LABEL[deal.urgency]}
             </div>
           </div>
-          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a5568', display: 'flex' }}>
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textSubtle, display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
@@ -826,16 +896,16 @@ function ProfileWorkspace({
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <Avatar initials={deal.avatar} size={48} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#dde3ec', fontFamily: 'Geist, sans-serif', marginBottom: 3 }}>{deal.name}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: t.text, marginBottom: 3 }}>{deal.name}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: '#4a5568', fontFamily: 'Geist, sans-serif' }}>{deal.company}</span>
-              <span style={{ fontSize: 10, color: '#2a3040' }}>·</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6dc2f1', fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
-              <span style={{ fontSize: 10, color: '#2a3040' }}>·</span>
+              <span style={{ fontSize: 12, color: t.textMuted }}>{deal.company}</span>
+              <span style={{ fontSize: 10, color: t.textFaint }}>·</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: t.brandBlue, fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
+              <span style={{ fontSize: 10, color: t.textFaint }}>·</span>
               <span style={{
-                fontSize: 10, color: flo.stages[stageIdx]?.color || '#4a5568',
-                background: `${flo.stages[stageIdx]?.color || '#4a5568'}15`,
-                padding: '2px 7px', borderRadius: 4, fontFamily: 'Geist, sans-serif',
+                fontSize: 10, color: flo.stages[stageIdx]?.color || t.textMuted,
+                background: alpha(flo.stages[stageIdx]?.color || t.textMuted, 0.12),
+                padding: '2px 7px', borderRadius: 4,
               }}>
                 {flo.stages[stageIdx]?.label || deal.stage}
               </span>
@@ -845,37 +915,33 @@ function ProfileWorkspace({
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
           {[
-            { Icon: Phone, label: 'Call', color: '#04d39e' },
-            { Icon: MessageSquare, label: 'Text', color: '#6dc2f1' },
-            { Icon: Mail, label: 'Email', color: '#6dc2f1' },
-            { Icon: Calendar, label: 'Schedule', color: '#f5a623' },
+            { Icon: Phone, label: 'Call', color: t.brandGreen },
+            { Icon: MessageSquare, label: 'Text', color: t.brandBlue },
+            { Icon: Mail, label: 'Email', color: t.brandBlue },
+            { Icon: Calendar, label: 'Schedule', color: t.warning },
           ].map(btn => (
             <button key={btn.label} style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
-              border: `1px solid ${btn.color}25`, background: `${btn.color}08`,
-              color: btn.color, cursor: 'pointer', fontSize: 11, fontWeight: 600,
-              fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = `${btn.color}14`; }}
-            onMouseLeave={e => { e.currentTarget.style.background = `${btn.color}08`; }}>
+              border: `1px solid ${alpha(btn.color, 0.3)}`, background: alpha(btn.color, 0.08),
+              color: btn.color, cursor: 'pointer', fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+            }}>
               <btn.Icon size={13} /> {btn.label}
             </button>
           ))}
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, color: '#3a4558', fontFamily: 'Geist Mono, monospace', alignSelf: 'center' }}>{deal.phone}</span>
+          <span style={{ fontSize: 11, color: t.textFaint, fontFamily: 'Geist Mono, monospace', alignSelf: 'center' }}>{deal.phone}</span>
         </div>
       </div>
 
-      {/* Work zone */}
       {workMode && (
-        <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#07090e', overflowY: 'auto', maxHeight: '55%' }}>
+        <div style={{ flexShrink: 0, padding: '14px 20px', borderBottom: `1px solid ${t.border}`, background: t.surface, overflowY: 'auto', maxHeight: '55%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            {workMode === 'call' && <Phone size={14} style={{ color: '#04d39e' }} />}
-            {workMode === 'email' && <Mail size={14} style={{ color: '#6dc2f1' }} />}
-            {workMode === 'follow-up' && <RefreshCw size={14} style={{ color: '#f5a623' }} />}
+            {workMode === 'call' && <Phone size={14} style={{ color: t.brandGreen }} />}
+            {workMode === 'email' && <Mail size={14} style={{ color: t.brandBlue }} />}
+            {workMode === 'follow-up' && <RefreshCw size={14} style={{ color: t.warning }} />}
             <span style={{
-              fontSize: 12, fontWeight: 700, fontFamily: 'Geist, sans-serif',
-              color: workMode === 'call' ? '#04d39e' : workMode === 'email' ? '#6dc2f1' : '#f5a623',
+              fontSize: 12, fontWeight: 700,
+              color: workMode === 'call' ? t.brandGreen : workMode === 'email' ? t.brandBlue : t.warning,
             }}>
               {workMode === 'call' ? 'Active Call' : workMode === 'email' ? 'Compose Email' : 'Follow Up'}
             </span>
@@ -884,14 +950,13 @@ function ProfileWorkspace({
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', padding: '0 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', padding: '0 20px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
             padding: '11px 14px', background: 'none', border: 'none',
-            borderBottom: `2px solid ${activeTab === tab.id ? '#6dc2f1' : 'transparent'}`,
-            color: activeTab === tab.id ? '#6dc2f1' : '#3a4558',
-            cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'Geist, sans-serif',
+            borderBottom: `2px solid ${activeTab === tab.id ? t.brandBlue : 'transparent'}`,
+            color: activeTab === tab.id ? t.brandBlue : t.textSubtle,
+            cursor: 'pointer', fontSize: 12, fontWeight: 600,
             transition: 'all 0.15s', marginBottom: -1,
           }}>
             {tab.label}
@@ -902,18 +967,22 @@ function ProfileWorkspace({
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         {activeTab === 'timeline' && (
           <div>
-            {deal.timeline.length === 0 && <div style={{ fontSize: 12, color: '#3a4558', fontFamily: 'Geist, sans-serif', textAlign: 'center', padding: '20px 0' }}>No activity yet</div>}
+            {deal.timeline.length === 0 && <div style={{ fontSize: 12, color: t.textFaint, textAlign: 'center', padding: '20px 0' }}>No activity yet</div>}
             {deal.timeline.map(entry => (
               <div key={entry.id} style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0c1219', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                  {entry.type === 'call' && <Phone size={11} style={{ color: '#04d39e' }} />}
-                  {entry.type === 'email' && <Mail size={11} style={{ color: '#6dc2f1' }} />}
-                  {entry.type === 'note' && <FileText size={11} style={{ color: '#f5a623' }} />}
-                  {entry.type === 'stage' && <ChevronRight size={11} style={{ color: '#b06dff' }} />}
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', background: t.card,
+                  border: `1px solid ${t.border}`, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2,
+                }}>
+                  {entry.type === 'call' && <Phone size={11} style={{ color: t.brandGreen }} />}
+                  {entry.type === 'email' && <Mail size={11} style={{ color: t.brandBlue }} />}
+                  {entry.type === 'note' && <FileText size={11} style={{ color: t.warning }} />}
+                  {entry.type === 'stage' && <ChevronRight size={11} style={{ color: '#9b6dff' }} />}
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#8c9199', fontFamily: 'Geist, sans-serif', lineHeight: 1.5 }}>{entry.text}</div>
-                  <div style={{ fontSize: 10, color: '#3a4558', fontFamily: 'Geist Mono, monospace', marginTop: 2 }}>{entry.time}</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.5 }}>{entry.text}</div>
+                  <div style={{ fontSize: 10, color: t.textFaint, fontFamily: 'Geist Mono, monospace', marginTop: 2 }}>{entry.time}</div>
                 </div>
               </div>
             ))}
@@ -921,9 +990,10 @@ function ProfileWorkspace({
         )}
         {activeTab === 'notes' && (
           <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this deal..." style={{
-            width: '100%', minHeight: 200, background: '#060a0f', border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, padding: '12px 14px', color: '#c8d0dc', fontSize: 12,
-            fontFamily: 'Geist, sans-serif', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box',
+            width: '100%', minHeight: 200, background: t.inset, border: `1px solid ${t.border}`,
+            borderRadius: 8, padding: '12px 14px', color: t.text, fontSize: 12,
+            fontFamily: 'Geist, sans-serif', resize: 'vertical', outline: 'none',
+            lineHeight: 1.7, boxSizing: 'border-box',
           }} />
         )}
         {activeTab === 'deal' && (
@@ -937,67 +1007,66 @@ function ProfileWorkspace({
               { label: 'Email', value: deal.email },
               { label: 'Next Step', value: deal.nextStep },
             ].map(item => (
-              <div key={item.label} style={{ background: '#060a0f', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '12px 14px' }}>
-                <div style={{ fontSize: 10, color: '#3a4558', fontFamily: 'Geist, sans-serif', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
-                <div style={{ fontSize: 12, color: '#8c9199', fontFamily: 'Geist, sans-serif' }}>{item.value}</div>
+              <div key={item.label} style={{ background: t.inset, border: `1px solid ${t.border}`, borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, color: t.textFaint, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: t.textMuted }}>{item.value}</div>
               </div>
             ))}
           </div>
         )}
         {activeTab === 'documents' && (
           <div style={{ textAlign: 'center', padding: '30px 0' }}>
-            <FileText size={32} style={{ color: '#2a3040', margin: '0 auto 10px' }} />
-            <div style={{ fontSize: 13, color: '#3a4558', fontFamily: 'Geist, sans-serif' }}>No documents uploaded</div>
+            <FileText size={32} style={{ color: t.textFaint, margin: '0 auto 10px' }} />
+            <div style={{ fontSize: 13, color: t.textFaint }}>No documents uploaded</div>
           </div>
         )}
       </div>
 
-      {/* Stage footer */}
       {nextStage && (
-        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#070b10' }}>
+        <div style={{
+          padding: '12px 20px', borderTop: `1px solid ${t.border}`,
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: t.surface,
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {flo.stages.map((s, i) => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: i <= stageIdx ? s.color : '#0c1219',
-                  border: `1px solid ${i <= stageIdx ? s.color : 'rgba(255,255,255,0.06)'}`,
+                  background: i <= stageIdx ? s.color : t.inset,
+                  border: `1px solid ${i <= stageIdx ? s.color : t.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 8, color: i <= stageIdx ? '#0D0D12' : '#2a3040',
+                  fontSize: 8, color: i <= stageIdx ? '#fff' : t.textFaint,
                   fontFamily: 'Geist Mono, monospace', fontWeight: 700, flexShrink: 0,
                 }}>
                   {i < stageIdx ? '✓' : i === stageIdx ? '●' : String(i + 1)}
                 </div>
-                {i < flo.stages.length - 1 && <div style={{ width: 14, height: 1, background: i < stageIdx ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)' }} />}
+                {i < flo.stages.length - 1 && <div style={{ width: 14, height: 1, background: t.border }} />}
               </div>
             ))}
           </div>
           <button style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-            border: `1px solid ${nextStage.color}40`, background: `${nextStage.color}10`,
-            color: nextStage.color, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = `${nextStage.color}18`; }}
-          onMouseLeave={e => { e.currentTarget.style.background = `${nextStage.color}10`; }}>
+            border: `1px solid ${alpha(nextStage.color, 0.4)}`, background: alpha(nextStage.color, 0.12),
+            color: nextStage.color, cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.15s',
+          }}>
             Move to {nextStage.label} <ChevronRight size={13} />
           </button>
         </div>
       )}
 
-      {/* Mid-call close warning */}
       {confirmClose && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#0c1219', border: '1px solid rgba(255,92,92,0.3)', borderRadius: 14, padding: '24px', width: 320, textAlign: 'center' }}>
-            <AlertTriangle size={28} style={{ color: '#ff5c5c', marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#dde3ec', fontFamily: 'Geist, sans-serif', marginBottom: 8 }}>Call in progress</div>
-            <div style={{ fontSize: 12, color: '#4a5568', fontFamily: 'Geist, sans-serif', marginBottom: 18, lineHeight: 1.5 }}>
+        <div style={{ position: 'absolute', inset: 0, background: t.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: t.card, border: `1px solid ${alpha(t.danger, 0.35)}`, borderRadius: 14, padding: 24, width: 320, textAlign: 'center', boxShadow: t.shadow }}>
+            <AlertTriangle size={28} style={{ color: t.danger, marginBottom: 12 }} />
+            <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 8 }}>Call in progress</div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 18, lineHeight: 1.5 }}>
               You haven't logged an outcome yet. Please select one before closing.
             </div>
             <button onClick={() => setConfirmClose(false)} style={{
               width: '100%', padding: '9px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg, #6dc2f1, #3a8fc7)',
-              fontFamily: 'Geist, sans-serif',
+              fontSize: 13, fontWeight: 700, color: '#fff',
+              background: `linear-gradient(135deg, ${t.brandBlue}, ${t.brandBlueDeep})`,
             }}>
               Go back and log outcome
             </button>
@@ -1010,40 +1079,70 @@ function ProfileWorkspace({
 
 // ─── Flo Picker ───────────────────────────────────────────────────────────────
 
-function FloPicker({ onSelect }: { onSelect: (flo: Flo) => void }) {
+function FloPicker({ onSelect, themeMode, onToggleTheme }: { onSelect: (flo: Flo) => void; themeMode: ThemeMode; onToggleTheme: () => void }) {
+  const t = useTheme();
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0D0D12', padding: 40 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'rgba(109,194,241,0.08)', border: '1px solid rgba(109,194,241,0.15)', marginBottom: 20 }}>
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#04d39e' }} />
-        <span style={{ fontSize: 11, color: '#6dc2f1', fontFamily: 'Geist, sans-serif', fontWeight: 600 }}>Deal Flo</span>
+    <div style={{
+      height: '100%', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', background: t.bg, padding: 40,
+      position: 'relative',
+    }}>
+      <div style={{ position: 'absolute', top: 20, left: 24 }}>
+        <FloRateLogo size={28} />
       </div>
-      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#dde3ec', fontFamily: 'Geist, sans-serif', marginBottom: 6, textAlign: 'center', margin: '0 0 6px' }}>
+      <div style={{ position: 'absolute', top: 22, right: 24 }}>
+        <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
+      </div>
+
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20,
+        background: alpha(t.brandBlue, 0.1), border: `1px solid ${alpha(t.brandBlue, 0.2)}`, marginBottom: 20,
+      }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: t.brandGreen }} />
+        <span style={{ fontSize: 11, color: t.brandBlue, fontWeight: 700 }}>Deal Flo</span>
+      </div>
+      <h1 style={{ fontSize: 30, fontWeight: 800, color: t.text, marginBottom: 6, textAlign: 'center', margin: '0 0 6px' }}>
         Select a Flo
       </h1>
-      <p style={{ fontSize: 13, color: '#3a4558', fontFamily: 'Geist, sans-serif', marginBottom: 40, textAlign: 'center' }}>
+      <p style={{ fontSize: 13, color: t.textSubtle, marginBottom: 40, textAlign: 'center' }}>
         Choose a workflow to open its deal board
       </p>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 760 }}>
         {FLOS.map(flo => {
-          const scoreColor = flo.healthScore >= 80 ? '#04d39e' : flo.healthScore >= 60 ? '#f5a623' : '#ff5c5c';
+          const scoreColor = flo.healthScore >= 80 ? t.brandGreen : flo.healthScore >= 60 ? t.warning : t.danger;
           return (
             <button
-              key={flo.id}
-              onClick={() => onSelect(flo)}
-              style={{ width: 220, background: '#0c1219', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(109,194,241,0.3)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              key={flo.id} onClick={() => onSelect(flo)}
+              style={{
+                width: 220, background: t.card, border: `1px solid ${t.border}`,
+                borderRadius: 14, padding: 20, cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease',
+                boxShadow: t.mode === 'light' ? t.shadow : 'none',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = alpha(t.brandBlue, 0.35);
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = t.mode === 'light' ? '0 12px 28px rgba(15,26,42,0.12)' : '0 12px 32px rgba(0,0,0,0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = t.mode === 'light' ? t.shadow : 'none';
+              }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'linear-gradient(135deg, #162030, #0f1a28)', border: '1px solid rgba(109,194,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                <Activity size={16} style={{ color: '#6dc2f1' }} />
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: t.mode === 'dark' ? 'linear-gradient(135deg, #162030, #0f1a28)' : alpha(t.brandBlue, 0.1),
+                border: `1px solid ${alpha(t.brandBlue, 0.2)}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+              }}>
+                <Activity size={16} style={{ color: t.brandBlue }} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#dde3ec', fontFamily: 'Geist, sans-serif', marginBottom: 4 }}>{flo.name}</div>
-              <div style={{ fontSize: 11, color: '#3a4558', fontFamily: 'Geist, sans-serif', marginBottom: 14 }}>{flo.dealCount} deals · {flo.stages.length} stages</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 4 }}>{flo.name}</div>
+              <div style={{ fontSize: 11, color: t.textSubtle, marginBottom: 14 }}>{flo.dealCount} deals · {flo.stages.length} stages</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {flo.stages.slice(0, 4).map(s => (
-                    <div key={s.id} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color }} />
-                  ))}
+                  {flo.stages.slice(0, 4).map(s => <div key={s.id} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color }} />)}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: scoreColor, fontFamily: 'Geist Mono, monospace' }}>{flo.healthScore}</div>
               </div>
@@ -1058,40 +1157,36 @@ function FloPicker({ onSelect }: { onSelect: (flo: Flo) => void }) {
 // ─── Mini Queue ───────────────────────────────────────────────────────────────
 
 function MiniQueue({ actions, activeDealId, onSelectDeal, flo }: {
-  actions: ActionRow[];
-  activeDealId: string;
-  onSelectDeal: (deal: Deal, mode: WorkMode) => void;
-  flo: Flo;
+  actions: ActionRow[]; activeDealId: string;
+  onSelectDeal: (deal: Deal, mode: WorkMode) => void; flo: Flo;
 }) {
+  const t = useTheme();
   return (
-    <div style={{ width: 240, height: '100%', background: '#07090e', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-      <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', fontFamily: 'Geist, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Action Queue</div>
+    <div style={{ width: 240, height: '100%', background: t.surface, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div style={{ padding: '14px 14px 10px', borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Action Queue</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
         {actions.map(action => {
           const deal = flo.deals.find(d => d.id === action.dealId);
           const isActive = action.dealId === activeDealId;
-          const urgColor = URGENCY_COLOR[action.urgency];
+          const urgColor = URGENCY_COLOR(t)[action.urgency];
           return (
-            <button
-              key={action.id}
-              onClick={() => deal && onSelectDeal(deal, action.actionType)}
-              style={{
-                width: '100%', background: isActive ? '#162030' : 'transparent',
-                border: `1px solid ${isActive ? 'rgba(109,194,241,0.25)' : 'rgba(255,255,255,0.04)'}`,
-                borderLeft: `3px solid ${isActive ? '#6dc2f1' : urgColor}`,
-                borderRadius: 8, padding: '8px 10px', marginBottom: 5,
-                cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-              }}
-            >
+            <button key={action.id} onClick={() => deal && onSelectDeal(deal, action.actionType)} style={{
+              width: '100%',
+              background: isActive ? alpha(t.brandBlue, t.mode === 'dark' ? 0.1 : 0.08) : 'transparent',
+              border: `1px solid ${isActive ? alpha(t.brandBlue, 0.3) : t.border}`,
+              borderLeft: `3px solid ${isActive ? t.brandBlue : urgColor}`,
+              borderRadius: 8, padding: '8px 10px', marginBottom: 5,
+              cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <UrgencyDot level={action.urgency} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? '#dde3ec' : '#5a6474', fontFamily: 'Geist, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? t.text : t.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {action.name}
                 </span>
               </div>
-              <div style={{ fontSize: 9, color: '#3a4558', fontFamily: 'Geist, sans-serif', marginTop: 3, marginLeft: 14 }}>{action.primaryBtn}</div>
+              <div style={{ fontSize: 9, color: t.textFaint, marginTop: 3, marginLeft: 14 }}>{action.primaryBtn}</div>
             </button>
           );
         })}
@@ -1103,6 +1198,9 @@ function MiniQueue({ actions, activeDealId, onSelectDeal, flo }: {
 // ─── Main DealFlo Screen ──────────────────────────────────────────────────────
 
 export function DealFloScreen() {
+  const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
+  const theme = useMemo(() => themeMode === 'dark' ? DARK : LIGHT, [themeMode]);
+
   const [selectedFlo, setSelectedFlo] = useState<Flo | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [openDrawerType, setOpenDrawerType] = useState<'actions' | 'insights' | null>(null);
@@ -1115,9 +1213,7 @@ export function DealFloScreen() {
   const boardScrim = activeDeal ? 0.45 : openDrawerType ? 0.35 : 0;
 
   const openProfile = useCallback((deal: Deal, mode: WorkMode = null) => {
-    setActiveDeal(deal);
-    setWorkMode(mode);
-    setCallOutcome(null);
+    setActiveDeal(deal); setWorkMode(mode); setCallOutcome(null);
     if (selectedFlo) {
       const idx = selectedFlo.deals.findIndex(d => d.id === deal.id);
       setDealIndex(idx >= 0 ? idx : 0);
@@ -1125,19 +1221,15 @@ export function DealFloScreen() {
   }, [selectedFlo]);
 
   const closeProfile = useCallback(() => {
-    setActiveDeal(null);
-    setWorkMode(null);
-    setCallOutcome(null);
+    setActiveDeal(null); setWorkMode(null); setCallOutcome(null);
   }, []);
 
   const navDeal = useCallback((dir: 1 | -1) => {
     if (!selectedFlo) return;
     const newIdx = dealIndex + dir;
     if (newIdx < 0 || newIdx >= selectedFlo.deals.length) return;
-    setDealIndex(newIdx);
-    setActiveDeal(selectedFlo.deals[newIdx]);
-    setWorkMode(null);
-    setCallOutcome(null);
+    setDealIndex(newIdx); setActiveDeal(selectedFlo.deals[newIdx]);
+    setWorkMode(null); setCallOutcome(null);
   }, [dealIndex, selectedFlo]);
 
   useEffect(() => {
@@ -1152,213 +1244,237 @@ export function DealFloScreen() {
     return () => window.removeEventListener('keydown', handler);
   }, [activeDeal, workMode, callOutcome, closeProfile]);
 
-  if (!selectedFlo) return <FloPicker onSelect={flo => setSelectedFlo(flo)} />;
+  const toggleTheme = () => setThemeMode(m => m === 'dark' ? 'light' : 'dark');
 
+  const fontInject = (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;600;700;800&display=swap');
+      @keyframes callPulse {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.35); opacity: 0; }
+      }
+    `}</style>
+  );
+
+  if (!selectedFlo) {
+    return (
+      <ThemeContext.Provider value={theme}>
+        {fontInject}
+        <FloPicker onSelect={flo => setSelectedFlo(flo)} themeMode={themeMode} onToggleTheme={toggleTheme} />
+      </ThemeContext.Provider>
+    );
+  }
+
+  const t = theme;
   const stageDeals = (stageId: string) => selectedFlo.deals.filter(d => d.stage === stageId);
   const totalPipeline = selectedFlo.deals.reduce((s, d) => s + d.amountRaw, 0);
-  const fmtPipeline = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: 'compact' } as Intl.NumberFormatOptions).format(totalPipeline);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0D0D12', fontFamily: 'Geist, sans-serif', position: 'relative', overflow: 'hidden' }}>
-      {/* ── Header ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#0a0f14', flexShrink: 0, zIndex: 10,
-      }}>
-        <button
-          onClick={() => { setSelectedFlo(null); setActiveDeal(null); setOpenDrawerType(null); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: '#4a5568', fontSize: 12, fontFamily: 'Geist, sans-serif', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#8c9199')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#4a5568')}
-        >
-          <ArrowLeft size={14} /> Deal Flo
-        </button>
-        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#dde3ec' }}>{selectedFlo.name}</span>
-          <span style={{ fontSize: 11, color: '#3a4558', fontFamily: 'Geist Mono, monospace' }}>{selectedFlo.dealCount} deals</span>
-          <span style={{ fontSize: 11, color: '#3a4558' }}>·</span>
-          <span style={{ fontSize: 11, color: '#4a5568', fontFamily: 'Geist Mono, monospace' }}>{fmtPipeline}</span>
-        </div>
-        <div style={{ flex: 1 }} />
-
-        {/* View switcher */}
-        <div style={{ display: 'flex', background: '#060a0f', borderRadius: 8, padding: 3, border: '1px solid rgba(255,255,255,0.06)', gap: 2 }}>
-          {([
-            { id: 'board' as ViewMode, Icon: LayoutGrid },
-            { id: 'list' as ViewMode, Icon: List },
-            { id: 'focus' as ViewMode, Icon: Focus },
-          ]).map(v => (
-            <button key={v.id} onClick={() => setViewMode(v.id)} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 28, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-              background: viewMode === v.id ? '#162030' : 'transparent',
-              color: viewMode === v.id ? '#6dc2f1' : '#3a4558', transition: 'all 0.15s',
-            }}>
-              <v.Icon size={13} />
-            </button>
-          ))}
-        </div>
-
-        <HealthPill score={selectedFlo.healthScore} />
-
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
-          border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#0D0D12',
-          background: '#04d39e', fontFamily: 'Geist, sans-serif', transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-          <Plus size={13} /> Add Deal
-        </button>
-
-        <button
-          onClick={() => setOpenDrawerType(d => d === 'actions' ? null : 'actions')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
-            border: `1px solid ${openDrawerType === 'actions' ? 'rgba(109,194,241,0.35)' : 'rgba(255,255,255,0.08)'}`,
-            cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            color: openDrawerType === 'actions' ? '#6dc2f1' : '#5a6474',
-            background: openDrawerType === 'actions' ? 'rgba(109,194,241,0.08)' : 'transparent',
-            fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-          }}
-        >
-          <Zap size={12} /> Actions
-          {selectedFlo.actions.length > 0 && (
-            <span style={{ background: '#ff5c5c', color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 800, padding: '1px 5px', fontFamily: 'Geist Mono, monospace' }}>
-              {selectedFlo.actions.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setOpenDrawerType(d => d === 'insights' ? null : 'insights')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
-            border: `1px solid ${openDrawerType === 'insights' ? 'rgba(4,211,158,0.35)' : 'rgba(255,255,255,0.08)'}`,
-            cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            color: openDrawerType === 'insights' ? '#04d39e' : '#5a6474',
-            background: openDrawerType === 'insights' ? 'rgba(4,211,158,0.08)' : 'transparent',
-            fontFamily: 'Geist, sans-serif', transition: 'all 0.15s',
-          }}
-        >
-          <BarChart2 size={12} /> Insights
-        </button>
-      </div>
-
-      {/* ── Body ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-        {isWorkSession && (
-          <MiniQueue actions={selectedFlo.actions} activeDealId={activeDeal!.id} onSelectDeal={openProfile} flo={selectedFlo} />
-        )}
-
-        {/* Board */}
+    <ThemeContext.Provider value={theme}>
+      {fontInject}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: t.bg, fontFamily: 'Geist, sans-serif', position: 'relative', overflow: 'hidden' }}>
+        {/* ── Header ── */}
         <div style={{
-          flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px',
-          transition: 'filter 0.3s, opacity 0.3s',
-          filter: boardScrim > 0 ? `brightness(${1 - boardScrim * 0.6})` : 'none',
-          minWidth: 0,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px',
+          borderBottom: `1px solid ${t.border}`, background: t.panel, flexShrink: 0, zIndex: 10,
+          flexWrap: 'wrap',
         }}>
-          {viewMode === 'board' && (
-            <div style={{ display: 'flex', gap: 10, height: '100%', minWidth: selectedFlo.stages.length * 195 }}>
-              {selectedFlo.stages.map(stage => (
-                <KanbanCol key={stage.id} stage={stage} deals={stageDeals(stage.id)} onCardClick={deal => openProfile(deal)} onActionClick={deal => openProfile(deal, deal.actionType)} />
-              ))}
-            </div>
+          <FloRateLogo size={26} />
+
+          <div style={{ width: 1, height: 22, background: t.border, margin: '0 4px' }} />
+
+          <button
+            onClick={() => { setSelectedFlo(null); setActiveDeal(null); setOpenDrawerType(null); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer',
+              color: t.textMuted, fontSize: 12, padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s',
+            }}
+          >
+            <ArrowLeft size={14} /> Deal Flo
+          </button>
+
+          <div style={{ width: 1, height: 16, background: t.border }} />
+
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{selectedFlo.name}</span>
+            <span style={{ fontSize: 11, color: t.textFaint, fontFamily: 'Geist Mono, monospace' }}>{selectedFlo.dealCount} deals</span>
+            <span style={{ fontSize: 11, color: t.textFaint }}>·</span>
+            <span style={{ fontSize: 11, color: t.textMuted, fontFamily: 'Geist Mono, monospace' }}>{fmtUSD(totalPipeline, true)}</span>
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{ display: 'flex', background: t.inset, borderRadius: 8, padding: 3, border: `1px solid ${t.border}`, gap: 2 }}>
+            {([
+              { id: 'board' as ViewMode, Icon: LayoutGrid },
+              { id: 'list' as ViewMode, Icon: List },
+              { id: 'focus' as ViewMode, Icon: Focus },
+            ]).map(v => (
+              <button key={v.id} onClick={() => setViewMode(v.id)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+                background: viewMode === v.id ? (t.mode === 'dark' ? '#162030' : '#fff') : 'transparent',
+                color: viewMode === v.id ? t.brandBlue : t.textSubtle,
+                boxShadow: viewMode === v.id && t.mode === 'light' ? '0 1px 3px rgba(15,26,42,0.08)' : 'none',
+                transition: 'all 0.15s',
+              }}>
+                <v.Icon size={13} />
+              </button>
+            ))}
+          </div>
+
+          <HealthPill score={selectedFlo.healthScore} />
+
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
+            border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#fff',
+            background: `linear-gradient(135deg, ${t.brandGreen}, ${t.mode === 'dark' ? '#02a87e' : '#048466'})`,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+            <Plus size={13} /> Add Deal
+          </button>
+
+          <button
+            onClick={() => setOpenDrawerType(d => d === 'actions' ? null : 'actions')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
+              border: `1px solid ${openDrawerType === 'actions' ? alpha(t.brandBlue, 0.4) : t.border}`,
+              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              color: openDrawerType === 'actions' ? t.brandBlue : t.textMuted,
+              background: openDrawerType === 'actions' ? alpha(t.brandBlue, 0.08) : 'transparent',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Zap size={12} /> Actions
+            {selectedFlo.actions.length > 0 && (
+              <span style={{ background: t.danger, color: '#fff', borderRadius: 10, fontSize: 9, fontWeight: 800, padding: '1px 5px', fontFamily: 'Geist Mono, monospace' }}>
+                {selectedFlo.actions.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setOpenDrawerType(d => d === 'insights' ? null : 'insights')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8,
+              border: `1px solid ${openDrawerType === 'insights' ? alpha(t.brandGreen, 0.4) : t.border}`,
+              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              color: openDrawerType === 'insights' ? t.brandGreen : t.textMuted,
+              background: openDrawerType === 'insights' ? alpha(t.brandGreen, 0.08) : 'transparent',
+              transition: 'all 0.15s',
+            }}
+          >
+            <BarChart2 size={12} /> Insights
+          </button>
+
+          <ThemeToggle mode={themeMode} onToggle={toggleTheme} />
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+          {isWorkSession && (
+            <MiniQueue actions={selectedFlo.actions} activeDealId={activeDeal!.id} onSelectDeal={openProfile} flo={selectedFlo} />
           )}
 
-          {viewMode === 'list' && (
-            <div style={{ maxWidth: 900 }}>
-              {selectedFlo.deals.map(deal => {
-                const stageInfo = selectedFlo.stages.find(s => s.id === deal.stage);
-                return (
-                  <div key={deal.id} onClick={() => openProfile(deal)} style={{
-                    display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 9,
-                    marginBottom: 5, background: '#0c1219', border: '1px solid rgba(255,255,255,0.05)',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(109,194,241,0.2)'; e.currentTarget.style.background = '#0e1520'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.background = '#0c1219'; }}>
-                    <UrgencyDot level={deal.urgency} />
-                    <Avatar initials={deal.avatar} size={28} />
-                    <span style={{ flex: '2 1 0', fontSize: 13, fontWeight: 600, color: '#dde3ec' }}>{deal.name}</span>
-                    <span style={{ flex: '2 1 0', fontSize: 11, color: '#4a5568' }}>{deal.company}</span>
-                    <span style={{ flex: '1 1 0', fontSize: 12, fontWeight: 700, color: '#6dc2f1', fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
-                    <span style={{ flex: '1 1 0', fontSize: 10, color: stageInfo?.color || '#4a5568', background: `${stageInfo?.color || '#4a5568'}12`, padding: '2px 7px', borderRadius: 4 }}>
-                      {stageInfo?.label || deal.stage}
-                    </span>
-                    <span style={{ flex: '3 1 0', fontSize: 11, color: '#3a4558', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.nextStep}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div style={{
+            flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: 16,
+            transition: 'filter 0.3s, opacity 0.3s',
+            filter: boardScrim > 0 ? `brightness(${1 - boardScrim * (t.mode === 'dark' ? 0.6 : 0.15)})` : 'none',
+            opacity: boardScrim > 0 ? (t.mode === 'light' ? 0.7 : 1) : 1,
+            minWidth: 0,
+          }}>
+            {viewMode === 'board' && (
+              <div style={{ display: 'flex', gap: 10, height: '100%', minWidth: selectedFlo.stages.length * 195 }}>
+                {selectedFlo.stages.map(stage => (
+                  <KanbanCol key={stage.id} stage={stage} deals={stageDeals(stage.id)}
+                    onCardClick={deal => openProfile(deal)}
+                    onActionClick={deal => openProfile(deal, deal.actionType)} />
+                ))}
+              </div>
+            )}
 
-          {viewMode === 'focus' && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, maxWidth: 900 }}>
-              {selectedFlo.deals.filter(d => ['critical', 'high'].includes(d.urgency)).map(deal => {
-                const urgColor = URGENCY_COLOR[deal.urgency];
-                return (
-                  <div key={deal.id} onClick={() => openProfile(deal)} style={{
-                    width: 240, padding: '16px', background: '#0c1219',
-                    border: `1px solid ${urgColor}25`, borderLeft: `3px solid ${urgColor}`,
-                    borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <Avatar initials={deal.avatar} size={32} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#dde3ec' }}>{deal.name}</div>
-                        <div style={{ fontSize: 10, color: urgColor, fontWeight: 600 }}>{URGENCY_LABEL[deal.urgency]}</div>
-                      </div>
+            {viewMode === 'list' && (
+              <div style={{ maxWidth: 900 }}>
+                {selectedFlo.deals.map(deal => {
+                  const stageInfo = selectedFlo.stages.find(s => s.id === deal.stage);
+                  return (
+                    <div key={deal.id} onClick={() => openProfile(deal)} style={{
+                      display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderRadius: 9,
+                      marginBottom: 5, background: t.card, border: `1px solid ${t.border}`,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
+                      <UrgencyDot level={deal.urgency} />
+                      <Avatar initials={deal.avatar} size={28} />
+                      <span style={{ flex: '2 1 0', fontSize: 13, fontWeight: 600, color: t.text }}>{deal.name}</span>
+                      <span style={{ flex: '2 1 0', fontSize: 11, color: t.textMuted }}>{deal.company}</span>
+                      <span style={{ flex: '1 1 0', fontSize: 12, fontWeight: 700, color: t.brandBlue, fontFamily: 'Geist Mono, monospace' }}>{deal.amount}</span>
+                      <span style={{ flex: '1 1 0', fontSize: 10, color: stageInfo?.color || t.textMuted, background: alpha(stageInfo?.color || t.textMuted, 0.12), padding: '2px 7px', borderRadius: 4 }}>
+                        {stageInfo?.label || deal.stage}
+                      </span>
+                      <span style={{ flex: '3 1 0', fontSize: 11, color: t.textSubtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deal.nextStep}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#4a5568', lineHeight: 1.5, marginBottom: 10 }}>{deal.nextStep}</div>
-                    {deal.actionType && (
-                      <button onClick={e => { e.stopPropagation(); openProfile(deal, deal.actionType); }} style={{
-                        width: '100%', padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
-                        fontSize: 11, fontWeight: 700, color: '#0D0D12', background: urgColor, fontFamily: 'Geist, sans-serif',
-                      }}>
-                        {deal.primaryAction}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
+
+            {viewMode === 'focus' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, maxWidth: 900 }}>
+                {selectedFlo.deals.filter(d => ['critical', 'high'].includes(d.urgency)).map(deal => {
+                  const urgColor = URGENCY_COLOR(t)[deal.urgency];
+                  return (
+                    <div key={deal.id} onClick={() => openProfile(deal)} style={{
+                      width: 240, padding: 16, background: t.card,
+                      border: `1px solid ${alpha(urgColor, 0.3)}`, borderLeft: `3px solid ${urgColor}`,
+                      borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <Avatar initials={deal.avatar} size={32} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{deal.name}</div>
+                          <div style={{ fontSize: 10, color: urgColor, fontWeight: 600 }}>{URGENCY_LABEL[deal.urgency]}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: t.textMuted, lineHeight: 1.5, marginBottom: 10 }}>{deal.nextStep}</div>
+                      {deal.actionType && (
+                        <button onClick={e => { e.stopPropagation(); openProfile(deal, deal.actionType); }} style={{
+                          width: '100%', padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+                          fontSize: 11, fontWeight: 700, color: '#fff', background: urgColor,
+                        }}>
+                          {deal.primaryAction}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {openDrawerType === 'actions' && !isWorkSession && (
+            <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden' }}>
+              <ActionsDrawer flo={selectedFlo} onClose={() => setOpenDrawerType(null)} onStartWork={(deal, mode) => { setOpenDrawerType(null); openProfile(deal, mode); }} />
+            </div>
+          )}
+          {openDrawerType === 'insights' && !isWorkSession && (
+            <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden' }}>
+              <InsightsDrawer flo={selectedFlo} onClose={() => setOpenDrawerType(null)} />
+            </div>
+          )}
+          {isWorkSession && activeDeal && (
+            <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden', position: 'relative' }}>
+              <ProfileWorkspace
+                deal={activeDeal} flo={selectedFlo} workMode={workMode}
+                onClose={closeProfile} onPrev={() => navDeal(-1)} onNext={() => navDeal(1)}
+                hasPrev={dealIndex > 0} hasNext={dealIndex < selectedFlo.deals.length - 1}
+                callOutcome={callOutcome} onCallOutcome={o => setCallOutcome(o)}
+              />
             </div>
           )}
         </div>
-
-        {/* Right panels */}
-        {openDrawerType === 'actions' && !isWorkSession && (
-          <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden' }}>
-            <ActionsDrawer flo={selectedFlo} onClose={() => setOpenDrawerType(null)} onStartWork={(deal, mode) => { setOpenDrawerType(null); openProfile(deal, mode); }} />
-          </div>
-        )}
-        {openDrawerType === 'insights' && !isWorkSession && (
-          <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden' }}>
-            <InsightsDrawer flo={selectedFlo} onClose={() => setOpenDrawerType(null)} />
-          </div>
-        )}
-        {isWorkSession && activeDeal && (
-          <div style={{ flexShrink: 0, height: '100%', overflow: 'hidden', position: 'relative' }}>
-            <ProfileWorkspace
-              deal={activeDeal} flo={selectedFlo} workMode={workMode}
-              onClose={closeProfile} onPrev={() => navDeal(-1)} onNext={() => navDeal(1)}
-              hasPrev={dealIndex > 0} hasNext={dealIndex < selectedFlo.deals.length - 1}
-              callOutcome={callOutcome} onCallOutcome={o => setCallOutcome(o)}
-            />
-          </div>
-        )}
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;600;700;800&display=swap');
-        @keyframes callPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.35); opacity: 0; }
-        }
-      `}</style>
-    </div>
+    </ThemeContext.Provider>
   );
 }
