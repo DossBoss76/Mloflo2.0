@@ -14,25 +14,52 @@ const RATES: Rate[] = [
   { label: '30yr Conv', rate: '6.881%', change: '0.006', direction: 'up' },
   { label: '15yr Conv', rate: '6.250%', change: '0.000', direction: 'down' },
   { label: '30yr FHA Jumbo', rate: '7.125%', change: '0.012', direction: 'up' },
+  { label: '20yr Conv', rate: '6.540%', change: '0.003', direction: 'down' },
+  { label: '10yr Treasury', rate: '4.218%', change: '0.014', direction: 'up' },
+  { label: '5/1 ARM', rate: '6.020%', change: '0.001', direction: 'down' },
 ];
+
+function RateItem({ r }: { r: Rate }) {
+  const isUp = r.direction === 'up';
+  const color = isUp ? '#ff5c5c' : '#04d39e';
+  const Arrow = isUp ? TrendingUp : TrendingDown;
+  return (
+    <div className="flex items-center gap-2 flex-shrink-0 mr-8">
+      <span className="text-[11px] text-[#7A8597] font-medium whitespace-nowrap">{r.label}</span>
+      <span className="text-[12px] font-bold text-[#e8eaed] font-mono">{r.rate}</span>
+      <Arrow size={11} style={{ color }} />
+      <span className="text-[11px] font-mono" style={{ color }}>{r.change}</span>
+    </div>
+  );
+}
 
 export function RateTicker() {
   return (
-    <div className="flex items-center gap-6 px-5 py-2 border-b border-white/[0.06] bg-[#0b0f15] flex-shrink-0 overflow-x-auto">
-      <div className="flex items-center gap-6 flex-1 min-w-0">
-        {RATES.map((r) => {
-          const isUp = r.direction === 'up';
-          const color = isUp ? '#ff5c5c' : '#04d39e';
-          const Arrow = isUp ? TrendingUp : TrendingDown;
-          return (
-            <div key={r.label} className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[11px] text-[#7A8597] font-medium whitespace-nowrap">{r.label}</span>
-              <span className="text-[12px] font-bold text-[#e8eaed] font-mono">{r.rate}</span>
-              <Arrow size={11} style={{ color }} />
-              <span className="text-[11px] font-mono" style={{ color }}>{r.change}</span>
-            </div>
-          );
-        })}
+    <div className="flex items-center gap-4 px-5 py-2 border-b border-white/[0.06] bg-[#0b0f15] flex-shrink-0">
+      <style>{`
+        @keyframes ticker-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .ticker-track {
+          animation: ticker-scroll 60s linear infinite;
+        }
+        .ticker-mask:hover .ticker-track {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      <div
+        className="ticker-mask flex-1 min-w-0 overflow-hidden relative"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent 0, black 32px, black calc(100% - 32px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 32px, black calc(100% - 32px), transparent 100%)',
+        }}
+      >
+        <div className="ticker-track flex w-max">
+          {RATES.map((r, i) => <RateItem key={`a-${i}`} r={r} />)}
+          {RATES.map((r, i) => <RateItem key={`b-${i}`} r={r} />)}
+        </div>
       </div>
 
       <div className="flex items-center gap-3 flex-shrink-0">
