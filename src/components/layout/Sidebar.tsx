@@ -47,11 +47,6 @@ export function Sidebar({ mobile = false }: SidebarProps) {
 
       <div className="px-5 pt-5 pb-4 flex-shrink-0">
         <MloFloLogo />
-        <div
-          className="mt-2 font-barlow text-[9px] text-[#4d5563] uppercase tracking-[0.18em]"
-        >
-          Execution Terminal · V2.0
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-2">

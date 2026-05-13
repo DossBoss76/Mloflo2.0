@@ -1,37 +1,87 @@
 export function MloFloLogo() {
   return (
-    <img
-      src="/My_project_(1).png"
-      alt="Mloflo"
-      style={{ height: 36, width: 'auto', objectFit: 'contain' }}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          background: 'linear-gradient(135deg, #1f5fea 0%, #0a3fb3 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 4px 12px rgba(31,95,234,0.35)',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 800,
+            fontFamily: 'Geist, Inter, sans-serif',
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+          }}
+        >
+          F
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 800,
+            color: '#e8eaed',
+            fontFamily: 'Geist, Inter, sans-serif',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          FloRate
+        </span>
+        <span
+          style={{
+            fontSize: 8.5,
+            fontWeight: 600,
+            color: '#5a6474',
+            fontFamily: 'Geist, Inter, sans-serif',
+            letterSpacing: '0.22em',
+            marginTop: 3,
+          }}
+        >
+          EXCHANGE
+        </span>
+      </div>
+    </div>
   );
 }
 
 export function MloFloLogomark({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="lm-arrow-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6ab0f5" />
-          <stop offset="100%" stopColor="#7b5ea7" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M20.5 8 A9.5 9.5 0 1 0 16.5 19.5"
-        stroke="#04d374"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M19 3.5 L23 7.5 L19 7.5"
-        stroke="url(#lm-arrow-grad)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.28,
+        background: 'linear-gradient(135deg, #1f5fea 0%, #0a3fb3 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          color: '#fff',
+          fontSize: size * 0.55,
+          fontWeight: 800,
+          fontFamily: 'Geist, Inter, sans-serif',
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
+        }}
+      >
+        F
+      </span>
+    </div>
   );
 }
