@@ -9,26 +9,30 @@ export function ComingSoon({ name, description }: ComingSoonProps) {
   return (
     <div className="h-full flex flex-col items-center justify-center px-8 bg-[#0a0c0f]">
       <div
-        className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
-        style={{ background: 'rgba(109,194,241,0.08)', border: '1px solid rgba(109,194,241,0.15)' }}
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+        style={{
+          background: 'linear-gradient(135deg, rgba(31,95,234,0.15) 0%, rgba(10,63,179,0.15) 100%)',
+          border: '1px solid rgba(31,95,234,0.3)',
+        }}
       >
-        <Clock size={22} style={{ color: '#6dc2f1' }} />
+        <Clock size={22} style={{ color: '#1f5fea' }} />
       </div>
 
-      <div className="font-palanquin font-semibold text-[28px] text-[#e8eaed] text-center mb-2">
+      <div className="font-semibold text-[28px] text-[#e8eaed] text-center mb-2 tracking-tight">
         {name}
       </div>
 
-      <p className="font-roboto text-[14px] text-[#4d5563] text-center max-w-[320px] leading-relaxed">
+      <p className="text-[14px] text-[#7A8597] text-center max-w-[340px] leading-relaxed">
         {description}
       </p>
 
       <div
-        className="mt-8 px-4 py-2 rounded-xl"
-        style={{ background: 'rgba(109,194,241,0.06)', border: '1px solid rgba(109,194,241,0.12)' }}
+        className="mt-8 px-4 py-2 rounded-xl inline-flex items-center gap-2"
+        style={{ background: 'rgba(31,95,234,0.08)', border: '1px solid rgba(31,95,234,0.2)' }}
       >
-        <span className="font-barlow text-[11px] uppercase tracking-[0.14em]" style={{ color: '#6dc2f1' }}>
-          Coming soon · Mloflo v2.0
+        <div className="w-1.5 h-1.5 rounded-full bg-[#04d39e]" />
+        <span className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: '#1f5fea' }}>
+          FloRate Exchange · Coming Soon
         </span>
       </div>
     </div>

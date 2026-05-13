@@ -1,5 +1,6 @@
 import { Menu } from 'lucide-react';
 import { Sidebar, MobileSidebarOverlay } from './Sidebar';
+import { RateTicker } from './RateTicker';
 import { ToastContainer } from '../ui/Toast';
 import { Drawer } from '../ui/Drawer';
 import { useApp } from '../../context/AppContext';
@@ -61,8 +62,10 @@ export function Layout() {
           >
             <Menu size={18} />
           </button>
-          <span className="font-palanquin font-semibold text-[16px] text-[#e8eaed]">Mloflo</span>
+          <span className="font-palanquin font-semibold text-[16px] text-[#e8eaed]">FloRate</span>
         </div>
+
+        <RateTicker />
 
         <main className="flex-1 overflow-hidden">
           {renderScreen()}

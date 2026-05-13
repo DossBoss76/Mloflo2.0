@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { useApp, Screen } from '../../context/AppContext';
 import { MloFloLogo } from '../ui/MloFloLogo';
+import { DarkModeToggle } from '../ui/DarkModeToggle';
 import { NAV_ITEMS } from '../../constants/mockData';
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -105,7 +106,8 @@ export function Sidebar({ mobile = false }: SidebarProps) {
         ))}
       </div>
 
-      <div className="px-3 py-4 border-t border-white/[0.06] flex-shrink-0">
+      <div className="px-3 py-3 border-t border-white/[0.06] flex-shrink-0 space-y-1">
+        <DarkModeToggle />
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[#161b23] transition-colors cursor-pointer">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-[#0a0c0f] font-roboto font-500 text-[12px] flex-shrink-0"
