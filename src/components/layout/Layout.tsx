@@ -49,8 +49,8 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-full bg-[#0a0c0f]">
-      <div className="hidden md:block w-[220px] flex-shrink-0" />
+    <div className="flex h-full" style={{ background: '#070A12' }}>
+      <div className="hidden md:block w-[240px] flex-shrink-0" />
       <Sidebar />
       <MobileSidebarOverlay />
 
