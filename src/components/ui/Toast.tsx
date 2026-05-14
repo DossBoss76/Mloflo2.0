@@ -11,10 +11,10 @@ export function ToastContainer() {
           key={toast.id}
           className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl min-w-[260px] max-w-sm cursor-pointer select-none ${toast.removing ? 'animate-toast-out' : 'animate-toast-in'} ${
             toast.type === 'success'
-              ? 'bg-fx-green text-[#052016]'
+              ? 'bg-[#04d39e] text-[#0a0c0f]'
               : toast.type === 'error'
-              ? 'bg-[#FF4D5E] text-white'
-              : 'bg-card text-fx-text border border-border-card'
+              ? 'bg-[#ff5c5c] text-white'
+              : 'bg-[#1c222c] text-[#e8eaed] border border-white/10'
           }`}
           onClick={() => removeToast(toast.id)}
         >

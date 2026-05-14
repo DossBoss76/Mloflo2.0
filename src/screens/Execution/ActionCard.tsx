@@ -65,52 +65,44 @@ export function ActionCard({ card }: ActionCardProps) {
     removeCard(card.id, `Dismissed — ${option}`);
   };
 
-  // Map legacy urgency hex to FloRate palette
-  const colorMap: Record<string, string> = {
-    '#ff5c5c': '#FF4D5E',
-    '#6dc2f1': '#2D8CFF',
-    '#f5a623': '#FFB020',
-    '#04d39e': '#00E58C',
-    '#04d374': '#00E58C',
+  const urgencyDimBg: Record<string, string> = {
+    '#ff5c5c': 'rgba(255,92,92,0.08)',
+    '#6dc2f1': 'rgba(109,194,241,0.08)',
+    '#f5a623': 'rgba(245,166,35,0.08)',
+    '#04d39e': 'rgba(4,211,158,0.08)',
+    '#04d374': 'rgba(4,211,116,0.08)',
   };
-  const accent = colorMap[card.urgencyColor] || card.urgencyColor;
-  const dimBg = `${accent}1F`;
+
+  const dimBg = urgencyDimBg[card.urgencyColor] || 'rgba(255,255,255,0.06)';
 
   return (
     <div className={`relative ${isRemoving ? 'card-removing' : 'animate-slide-up'}`}>
       <div
-        className="rounded-2xl overflow-hidden transition-all"
-        style={{
-          background: '#101722',
-          border: '1px solid rgba(148,163,184,0.12)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-        }}
+        className="rounded-12 overflow-hidden"
+        style={{ background: '#1c222c', border: '1px solid rgba(255,255,255,0.08)' }}
       >
-        <div className="h-[3px] w-full" style={{ background: accent, boxShadow: `0 0 12px ${accent}80` }} />
+        <div className="h-[3px] w-full" style={{ background: card.urgencyColor }} />
 
-        <div className="px-5 pt-4 pb-4">
-          <div className="flex items-start justify-between mb-2.5 gap-3">
-            <div className="min-w-0">
-              <div className="font-bold text-[15px] text-fx-text tracking-tight">{card.name}</div>
-              <div className="text-[11.5px] text-fx-text-3 mt-0.5">{card.context}</div>
+        <div className="px-4 pt-3.5 pb-3">
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <div className="font-palanquin font-semibold text-[14px] text-[#e8eaed]">{card.name}</div>
+              <div className="font-barlow text-[11px] text-[#4d5563] mt-0.5">{card.context}</div>
             </div>
-            <div className="font-bold text-[18px] flex-shrink-0 tabular tracking-tight" style={{ color: accent }}>
+            <div className="font-barlow font-semibold text-[17px] ml-3 flex-shrink-0" style={{ color: card.urgencyColor }}>
               {card.commission}
             </div>
           </div>
 
-          <p className="text-[12.5px] text-fx-text-2 leading-[1.65] mb-4">
+          <p className="font-roboto text-[12px] text-[#8c9199] leading-[1.6] mb-3">
             {card.why}
           </p>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handlePrimary}
-              className="font-semibold text-[12px] px-3.5 py-2 rounded-xl transition-all hover:opacity-95 active:scale-[0.98] text-white"
-              style={{
-                background: `linear-gradient(135deg, ${accent} 0%, ${accent}DD 100%)`,
-                boxShadow: `0 4px 14px ${accent}40`,
-              }}
+              className="font-roboto font-medium text-[11px] px-3 py-1.5 rounded-[7px] transition-all hover:opacity-90 active:scale-[0.98] text-[#0a0c0f]"
+              style={{ background: card.urgencyColor }}
             >
               {card.primaryBtn}
             </button>
@@ -118,15 +110,15 @@ export function ActionCard({ card }: ActionCardProps) {
               <button
                 key={btn}
                 onClick={() => handleGhost(btn)}
-                className="fx-btn-ghost text-[11.5px] px-3 py-2"
+                className="font-roboto font-medium text-[11px] px-3 py-1.5 rounded-[7px] bg-[#222832] border border-white/10 text-[#e8eaed] hover:border-white/20 hover:text-white transition-all active:scale-[0.98]"
               >
                 {btn}
               </button>
             ))}
             <div className="ml-auto flex-shrink-0">
               <span
-                className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                style={{ color: accent, background: dimBg, border: `1px solid ${accent}55` }}
+                className="font-barlow text-[10px] px-2 py-1 rounded"
+                style={{ color: card.urgencyColor, background: dimBg, border: `1px solid ${card.urgencyColor}22` }}
               >
                 {card.tag}
               </span>
@@ -135,41 +127,41 @@ export function ActionCard({ card }: ActionCardProps) {
         </div>
 
         <div
-          className="flex items-center gap-0 px-5 py-2.5 border-t"
-          style={{ background: 'rgba(8,17,30,0.6)', borderColor: 'rgba(148,163,184,0.08)' }}
+          className="flex items-center gap-0 px-4 py-2.5 border-t"
+          style={{ background: '#161b23', borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <button
             onClick={handleSnooze}
-            className="text-[11px] font-medium text-fx-text-2 hover:text-fx-text hover:bg-white/[0.04] transition-all px-2 py-1 rounded-md"
+            className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md"
           >
             Snooze 2hr
           </button>
-          <span className="text-[10px] text-fx-text-4 mx-1">·</span>
+          <span className="font-barlow text-[10px] text-[#3a4150] mx-1">·</span>
           <div className="relative">
             <button
               onClick={handleHandToAi}
-              className="text-[11px] font-medium text-fx-text-2 hover:text-fx-text hover:bg-white/[0.04] transition-all px-2 py-1 rounded-md"
+              className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md"
             >
               Hand to AI
             </button>
             {showAiPopover && (
               <div
-                className="absolute bottom-full left-0 mb-2 w-64 rounded-2xl shadow-2xl z-20 p-4"
-                style={{ background: '#121C29', border: '1px solid rgba(45,140,255,0.22)' }}
+                className="absolute bottom-full left-0 mb-2 w-64 rounded-12 shadow-2xl z-20 p-4"
+                style={{ background: '#1c222c', border: '1px solid rgba(255,255,255,0.12)' }}
               >
-                <div className="text-[12px] text-fx-text-2 leading-relaxed mb-3">
+                <div className="font-roboto text-[12px] text-[#8c9199] leading-relaxed mb-3">
                   Hand this to your AI agent? It will send the follow-up and notify you of any reply.
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={confirmHandToAi}
-                    className="fx-btn-success flex-1 py-1.5 text-[12px]"
+                    className="flex-1 py-1.5 rounded-[7px] bg-[#04d39e] font-roboto font-medium text-[12px] text-[#0a0c0f] hover:bg-[#04d39e]/90 transition-all"
                   >
                     Yes, handle it
                   </button>
                   <button
                     onClick={() => setShowAiPopover(false)}
-                    className="fx-btn-ghost px-3 py-1.5 text-[12px]"
+                    className="px-3 py-1.5 rounded-[7px] bg-[#222832] border border-white/10 font-roboto font-medium text-[12px] text-[#8c9199] hover:text-white transition-all"
                   >
                     Cancel
                   </button>
@@ -177,24 +169,24 @@ export function ActionCard({ card }: ActionCardProps) {
               </div>
             )}
           </div>
-          <span className="text-[10px] text-fx-text-4 mx-1">·</span>
+          <span className="font-barlow text-[10px] text-[#3a4150] mx-1">·</span>
           <div className="relative" ref={dismissRef}>
             <button
               onClick={() => setShowDismiss(v => !v)}
-              className="text-[11px] font-medium text-fx-text-2 hover:text-fx-text hover:bg-white/[0.04] transition-all px-2 py-1 rounded-md flex items-center gap-1"
+              className="font-barlow text-[11px] font-medium text-[#8c9199] hover:text-[#c8cdd5] hover:bg-white/5 transition-all px-2 py-1 rounded-md flex items-center gap-1"
             >
               Dismiss <ChevronDown size={10} />
             </button>
             {showDismiss && (
               <div
                 className="absolute bottom-full left-0 mb-1 w-44 rounded-xl shadow-2xl z-20 overflow-hidden"
-                style={{ background: '#121C29', border: '1px solid rgba(45,140,255,0.22)' }}
+                style={{ background: '#1c222c', border: '1px solid rgba(255,255,255,0.12)' }}
               >
                 {DISMISS_OPTIONS.map(opt => (
                   <button
                     key={opt}
                     onClick={() => handleDismiss(opt)}
-                    className="w-full text-left px-4 py-2.5 text-[12px] text-fx-text-2 hover:text-fx-text hover:bg-white/[0.04] transition-colors"
+                    className="w-full text-left px-4 py-2.5 font-roboto text-[12px] text-[#8c9199] hover:text-[#e8eaed] hover:bg-[#222832] transition-colors"
                   >
                     {opt}
                   </button>

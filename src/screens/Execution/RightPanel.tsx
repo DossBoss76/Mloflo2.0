@@ -5,14 +5,21 @@ import { WEEKLY_PLAN, AI_AGENTS } from '../../constants/mockData';
 
 function PanelCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`fx-card p-5 ${className}`}>
+    <div
+      className={`rounded-12 p-4 ${className}`}
+      style={{ background: '#1c222c', border: '1px solid rgba(255,255,255,0.08)' }}
+    >
       {children}
     </div>
   );
 }
 
 function PanelTitle({ children }: { children: React.ReactNode }) {
-  return <div className="fx-label mb-3">{children}</div>;
+  return (
+    <div className="font-barlow text-[10px] text-[#4d5563] uppercase tracking-[0.14em] mb-3">
+      {children}
+    </div>
+  );
 }
 
 function ProgressBar({ pct, color, delay = 0 }: { pct: number; color: string; delay?: number }) {
@@ -25,7 +32,7 @@ function ProgressBar({ pct, color, delay = 0 }: { pct: number; color: string; de
   return (
     <div
       className="mt-1 rounded-full overflow-hidden"
-      style={{ height: 5, background: 'rgba(148,163,184,0.18)' }}
+      style={{ height: 4, background: 'rgba(255,255,255,0.06)' }}
     >
       <div
         className="h-full rounded-full transition-all duration-700 ease-out"
@@ -45,15 +52,15 @@ function WeeklyPlanPanel() {
           return (
             <div key={item.label}>
               <div className="flex items-center justify-between">
-                <span className="text-[12.5px] text-fx-text-2 font-medium">{item.label}</span>
+                <span className="font-roboto text-[12px] text-[#8c9199]">{item.label}</span>
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="text-[11px] tabular font-semibold"
-                    style={{ color: item.complete ? '#00E58C' : '#64748B' }}
+                    className="font-barlow text-[11px]"
+                    style={{ color: item.complete ? '#04d39e' : '#4d5563' }}
                   >
                     {item.current}/{item.total}
                   </span>
-                  {item.complete && <CheckCircle size={11} style={{ color: '#00E58C' }} />}
+                  {item.complete && <CheckCircle size={11} style={{ color: '#04d39e' }} />}
                 </div>
               </div>
               <ProgressBar pct={pct} color={item.color} delay={i * 150} />
@@ -75,18 +82,18 @@ function AiWorkforcePanel() {
         {AI_AGENTS.map(agent => (
           <div
             key={agent.name}
-            className={`flex items-center gap-2.5 rounded-lg px-1 py-1 -mx-1 transition-colors ${agent.clickable ? 'cursor-pointer hover:bg-white/[0.04]' : ''}`}
+            className={`flex items-center gap-2.5 rounded-lg px-1 py-1 -mx-1 transition-colors ${agent.clickable ? 'cursor-pointer hover:bg-[#222832]' : ''}`}
             onClick={agent.clickable ? () => openDrawer({ type: 'ai-review', title: agent.name }) : undefined}
           >
             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse-dot" style={{ background: agent.color, boxShadow: `0 0 4px ${agent.color}` }}/>
-            <span className="text-[12.5px] text-fx-text font-medium flex-1">{agent.name}</span>
+            <span className="font-roboto text-[12px] text-[#e8eaed] flex-1">{agent.name}</span>
             {agent.clickable ? (
               <div className="flex items-center gap-1">
-                <span className="text-[11px] tabular font-semibold" style={{ color: '#00E58C' }}>{agent.count}</span>
-                <ChevronRight size={12} style={{ color: '#00E58C' }} />
+                <span className="font-barlow text-[11px] underline underline-offset-2" style={{ color: '#04d39e' }}>{agent.count}</span>
+                <ChevronRight size={12} style={{ color: '#04d39e' }} />
               </div>
             ) : (
-              <span className="text-[11px] tabular font-semibold text-[#4d5563]">{agent.count}</span>
+              <span className="font-barlow text-[11px] text-[#4d5563]">{agent.count}</span>
             )}
           </div>
         ))}
@@ -96,11 +103,11 @@ function AiWorkforcePanel() {
 }
 
 const MINI_DEALS = [
-  { id: 'd7', borrower: 'Sarah Chen', stage: 'DOCS PENDING · 8 DAYS', commission: '$3,200', color: '#FF4D5E' },
-  { id: 'd10', borrower: 'Priya Nair', stage: 'CTC · CLOSING FRI', commission: '$2,640', color: '#00E58C' },
-  { id: 'd3', borrower: 'James Okafor', stage: 'PRE-APPROVAL', commission: '$2,800', color: '#2D8CFF' },
-  { id: 'd5', borrower: 'Tom & Lisa Park', stage: 'APPLICATION', commission: '$3,800', color: '#FFB020' },
-  { id: 'd14', borrower: 'Keisha Brown', stage: 'LEAD · NEW', commission: '$1,900', color: '#64748B' },
+  { id: 'd7', borrower: 'Sarah Chen', stage: 'DOCS PENDING · 8 DAYS', commission: '$3,200', color: '#ff5c5c' },
+  { id: 'd10', borrower: 'Priya Nair', stage: 'CTC · CLOSING FRI', commission: '$2,640', color: '#04d39e' },
+  { id: 'd3', borrower: 'James Okafor', stage: 'PRE-APPROVAL', commission: '$2,800', color: '#6dc2f1' },
+  { id: 'd5', borrower: 'Tom & Lisa Park', stage: 'APPLICATION', commission: '$3,800', color: '#f5a623' },
+  { id: 'd14', borrower: 'Keisha Brown', stage: 'LEAD · NEW', commission: '$1,900', color: '#4d5563' },
 ];
 
 function DealFloMiniPanel() {
@@ -115,7 +122,7 @@ function DealFloMiniPanel() {
           return (
             <div
               key={item.id}
-              className="flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.04] -mx-2 px-2 py-1.5 rounded-xl transition-colors group"
+              className="flex items-center gap-2.5 cursor-pointer hover:bg-[#222832] -mx-2 px-2 py-1.5 rounded-xl transition-colors group"
               onClick={() => openDrawer({ type: 'deal-detail', deal: deal || { id: item.id, borrower: item.borrower, commission: item.commission } as any })}
             >
               <div
@@ -126,9 +133,9 @@ function DealFloMiniPanel() {
                 <div className="font-roboto font-medium text-[12px] text-[#e8eaed] truncate group-hover:text-white">
                   {item.borrower}
                 </div>
-                <div className="text-[10px] text-fx-text-3 truncate uppercase tracking-[0.10em] font-semibold mt-0.5">{item.stage}</div>
+                <div className="font-barlow text-[10px] text-[#4d5563] truncate">{item.stage}</div>
               </div>
-              <span className="text-[12px] text-fx-text-2 flex-shrink-0 tabular font-semibold">{item.commission}</span>
+              <span className="font-barlow text-[12px] text-[#8c9199] flex-shrink-0">{item.commission}</span>
             </div>
           );
         })}
