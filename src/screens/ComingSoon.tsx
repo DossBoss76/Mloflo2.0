@@ -32,7 +32,7 @@ export function ComingSoon({ name, description }: ComingSoonProps) {
       >
         <div className="w-1.5 h-1.5 rounded-full bg-[#04d39e]" />
         <span className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: '#1f5fea' }}>
-          FloRate Exchange · Coming Soon
+          Mloflo Exchange · Coming Soon
         </span>
       </div>
     </div>

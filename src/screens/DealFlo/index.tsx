@@ -130,9 +130,9 @@ const URGENCY_LABEL: Record<UrgencyLevel, string> = {
   critical: 'Critical', high: 'High', amber: 'Amber', green: 'Active', blue: 'Info',
 };
 
-// ─── FloRate Logo ─────────────────────────────────────────────────────────────
+// ─── Mloflo Logo ─────────────────────────────────────────────────────────────
 
-function FloRateLogo({ size = 28 }: { size?: number }) {
+function MlofloLogo({ size = 28 }: { size?: number }) {
   const t = useTheme();
   const blue = t.mode === 'dark' ? '#1f5fea' : '#1B6CFF';
   const blueDeep = t.mode === 'dark' ? '#0a3fb3' : '#0E4FCC';
@@ -154,7 +154,7 @@ function FloRateLogo({ size = 28 }: { size?: number }) {
         <span style={{
           fontSize: 14, fontWeight: 800, color: t.text,
           fontFamily: 'Geist, sans-serif', letterSpacing: '-0.01em',
-        }}>FloRate</span>
+        }}>Mloflo</span>
         <span style={{
           fontSize: 8, fontWeight: 600, color: t.textSubtle,
           fontFamily: 'Geist, sans-serif', letterSpacing: '0.18em', marginTop: 2,
@@ -1088,7 +1088,7 @@ function FloPicker({ onSelect, themeMode, onToggleTheme }: { onSelect: (flo: Flo
       position: 'relative',
     }}>
       <div style={{ position: 'absolute', top: 20, left: 24 }}>
-        <FloRateLogo size={28} />
+        <MlofloLogo size={28} />
       </div>
       <div style={{ position: 'absolute', top: 22, right: 24 }}>
         <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
@@ -1279,7 +1279,7 @@ export function DealFloScreen() {
           borderBottom: `1px solid ${t.border}`, background: t.panel, flexShrink: 0, zIndex: 10,
           flexWrap: 'wrap',
         }}>
-          <FloRateLogo size={26} />
+          <MlofloLogo size={26} />
 
           <div style={{ width: 1, height: 22, background: t.border, margin: '0 4px' }} />
 

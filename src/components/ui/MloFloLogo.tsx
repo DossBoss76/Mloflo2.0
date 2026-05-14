@@ -37,7 +37,7 @@ export function MloFloLogo() {
             letterSpacing: '-0.01em',
           }}
         >
-          FloRate
+          Mloflo
         </span>
         <span
           style={{

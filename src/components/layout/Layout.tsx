@@ -62,7 +62,7 @@ export function Layout() {
           >
             <Menu size={18} />
           </button>
-          <span className="font-palanquin font-semibold text-[16px] text-[#e8eaed]">FloRate</span>
+          <span className="font-palanquin font-semibold text-[16px] text-[#e8eaed]">Mloflo</span>
         </div>
 
         <RateTicker />
